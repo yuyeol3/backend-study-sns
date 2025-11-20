@@ -11,11 +11,15 @@ drop table if exists members cascade;
 create table if not exists members
 (
     id         BIGINT auto_increment primary key,
-    nickname   varchar(255) not null unique,
+    email      varchar(255) not null unique,
+    password   varchar(255) not null,
+    nickname   varchar(255) not null,
     created_at TIMESTAMP not null,
     updated_at TIMESTAMP  not null,
     version BIGINT default 0
+
 );
+create index email_index on members(email);
 
 create table if not exists member_follows
 (

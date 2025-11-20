@@ -29,10 +29,10 @@ public record PostResponseDto(
                 post.getId(),
                 post.getContent(),
                 post.getMember().getNickname(),
-                post.getPostLikes().stream().count(),
+                post.getPostLikes() == null ? 0L : post.getPostLikes().stream().count(),
                 post.getCreatedAt(),
                 post.getUpdatedAt(),
-                post.getComments().stream().count()
+                post.getComments() == null ? 0L : post.getComments().stream().count()
         );
     }
 }

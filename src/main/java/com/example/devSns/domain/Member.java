@@ -11,6 +11,12 @@ public class Member extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name="email", nullable = false, unique = true)
+    private String email;
+    
+    @Column(name="password", nullable = false)
+    private String password;
+    
     @Column(name = "nickname", nullable = false, unique = true)
     private String nickname;
 
@@ -33,6 +39,7 @@ public class Member extends BaseTimeEntity {
     private Long version;
 
     public Member() {}
+    // todo : email, password 포함하는 생성자로 바꾸기
     public Member(String nickname) {
         this.nickname = nickname;
     }
@@ -43,6 +50,14 @@ public class Member extends BaseTimeEntity {
 
     public String getNickname() {
         return nickname;
+    }
+    
+    public String getEmail() {
+        return email;
+    }
+    
+    public String getPassword() {
+        return password;
     }
 
 }

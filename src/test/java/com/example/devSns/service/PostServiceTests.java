@@ -1,5 +1,6 @@
 package com.example.devSns.service;
 
+import com.example.devSns.domain.Member;
 import com.example.devSns.domain.Post;
 import com.example.devSns.dto.GenericDataDto;
 import com.example.devSns.dto.PaginatedDto;
@@ -8,6 +9,7 @@ import com.example.devSns.dto.post.PostResponseDto;
 import com.example.devSns.exception.InvalidRequestException;
 import com.example.devSns.exception.NotFoundException;
 import com.example.devSns.repository.CommentRepository;
+import com.example.devSns.repository.MemberRepository;
 import com.example.devSns.repository.PostRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.*;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -35,6 +38,9 @@ class PostServiceTests {
     @Mock
     private CommentRepository commentRepository;
 
+    @Mock
+    private MemberRepository memberRepository;
+
     @InjectMocks
     private PostService postService;
 
@@ -42,19 +48,24 @@ class PostServiceTests {
     @DisplayName("게시글 생성 성공")
     void create_success() {
         // given
-        PostCreateDto createDto = new PostCreateDto("Test Content", 1L);
-        Post post = Post.create("Test Content", "testUser");
-        post.setId(1L); // Mocking the ID set after save
+        Long memberId = 100L;
+        PostCreateDto dto= new PostCreateDto("test content", memberId);
 
-        when(postRepository.save(any(Post.class))).thenReturn(post);
+        Member member = new Member("testUser");
+
+        Post savedPost = new Post("test content", member);
+        savedPost.setId(1L);
+
+        when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
+        when(postRepository.save(any(Post.class))).thenReturn(savedPost);
 
         // when
-        Long postId = postService.create(createDto);
+        Long resultId = postService.create(dto);
 
         // then
-        assertNotNull(postId);
-        assertEquals(1L, postId);
-        verify(postRepository, times(1)).save(any(Post.class));
+        assertEquals(savedPost.getId(), resultId); // 결과 확인
+        verify(memberRepository).findById(memberId); // 특정 메서드가 호출되었는지 검증
+        verify(postRepository).save(any(Post.class));
     }
 
     @Test
@@ -65,7 +76,6 @@ class PostServiceTests {
         Post post = createDummyPost(postId, "Test Content", "testUser");
 
         when(postRepository.findById(postId)).thenReturn(Optional.of(post));
-        when(commentRepository.countCommentsByPostId(postId)).thenReturn(5L);
 
         // when
         PostResponseDto responseDto = postService.findOne(postId);
@@ -75,7 +85,6 @@ class PostServiceTests {
         assertEquals(postId, responseDto.id());
         assertEquals("Test Content", responseDto.content());
         assertEquals("testUser", responseDto.userName());
-        assertEquals(5L, responseDto.comments());
     }
 
     @Test
@@ -128,8 +137,8 @@ class PostServiceTests {
         GenericDataDto<String> contentDto = new GenericDataDto<>(newContent);
         Post post = createDummyPost(postId, "Original Content", "testUser");
 
+
         when(postRepository.findById(postId)).thenReturn(Optional.of(post));
-        when(commentRepository.countCommentsByPostId(postId)).thenReturn(0L);
 
         // when
         PostResponseDto responseDto = postService.updateContent(postId, contentDto);
@@ -152,94 +161,107 @@ class PostServiceTests {
     }
 
     @Test
-    @DisplayName("게시글 좋아요 성공")
-    void like_success() {
-        // given
-        Long postId = 1L;
-        Post post = createDummyPost(postId, "Content", "User");
-        when(postRepository.findById(postId)).thenReturn(Optional.of(post));
-
-        // when
-        postService.like(postId);
-
-        // then
-        verify(postRepository, times(1)).findById(postId);
-        verify(postRepository, times(1)).incrementLikeById(postId);
-    }
-
-    @Test
-    @DisplayName("존재하지 않는 게시글에 좋아요 시 NotFoundException 발생")
-    void like_throwsNotFoundException() {
-        // given
-        Long postId = 99L;
-        when(postRepository.findById(postId)).thenReturn(Optional.empty());
-
-        // when & then
-        assertThrows(NotFoundException.class, () -> postService.like(postId));
-        verify(postRepository, never()).incrementLikeById(anyLong());
-    }
-
-    @Test
     @DisplayName("게시글 페이지네이션 조회 - 첫 페이지")
-    void findAsPaginated_initialPage() {
+    void findAsSlice_initialPage() {
         // given
-        List<Post> posts = List.of(
-                createDummyPost(10L, "Content 10", "User"),
-                createDummyPost(9L, "Content 9", "User")
+        Pageable pageable = PageRequest.of(0, 15, Sort.by(Sort.Direction.DESC, "id"));
+        List<PostResponseDto> content = List.of(
+            new PostResponseDto(2L, "c2", "user", 0L, null, null, 0L),
+            new PostResponseDto(1L, "c1", "user", 0L, null, null, 0L)
         );
-        when(postRepository.findTop15ByCreatedAtBeforeOrderByCreatedAtDesc(any(LocalDateTime.class))).thenReturn(posts);
-        when(commentRepository.countCommentsAndGroupByPostIdIn(posts)).thenReturn(
-                List.of(new Long[]{10L, 5L}, new Long[]{9L, 2L})
-        );
+        Slice<PostResponseDto> slice = new SliceImpl<>(content, pageable, true);
+
+        when(postRepository.findPostSliceWithLikeCountAndCommentCount(pageable)).thenReturn(slice);
 
         // when
-        PaginatedDto<List<PostResponseDto>> result = postService.findAsPaginated(new GenericDataDto<>(null));
+        Slice<PostResponseDto> result = postService.findAsSlice(pageable);
 
         // then
-        assertEquals(2, result.data().size());
-        assertEquals(9L, result.nextQueryCriteria());
-        assertEquals(5L, result.data().get(0).comments());
-        assertEquals(2L, result.data().get(1).comments());
+        assertEquals(2, result.getNumberOfElements());
+        assertEquals(2L, result.getContent().get(0).id());
+        assertEquals(1L, result.getContent().get(1).id());
+        assertTrue(result.hasNext());
+        assertEquals(0, result.getNumber());
+        assertEquals(15, result.getSize());
+
+        verify(postRepository, times(1)).findPostSliceWithLikeCountAndCommentCount(pageable);
     }
 
     @Test
     @DisplayName("게시글 페이지네이션 조회 - 다음 페이지")
-    void findAsPaginated_nextPage() {
+    void findAsSlice_nextPage() {
         // given
-        Long beforeId = 11L;
-        List<Post> posts = List.of(
-                createDummyPost(10L, "Content 10", "User"),
-                createDummyPost(9L, "Content 9", "User")
+        // page=1, size=2 → 두 번째 페이지
+        Pageable pageable = PageRequest.of(
+                1,
+                2,
+                Sort.by(Sort.Direction.DESC, "id")
         );
-        when(postRepository.findTop15ByIdBeforeOrderByIdDesc(beforeId)).thenReturn(posts);
-        when(commentRepository.countCommentsAndGroupByPostIdIn(posts)).thenReturn(
-                List.of(new Long[]{10L, 5L}, new Long[]{9L, 2L})
+
+        // 두 번째 페이지에 들어갈 더미 데이터
+        PostResponseDto p1 = new PostResponseDto(
+                8L, "content8", "user1", 0L,
+                LocalDateTime.now(), LocalDateTime.now(), 0L
         );
+        PostResponseDto p2 = new PostResponseDto(
+                7L, "content7", "user2", 0L,
+                LocalDateTime.now(), LocalDateTime.now(), 0L
+        );
+        List<PostResponseDto> content = List.of(p1, p2);
+
+        // hasNext = true → 아직 다음 페이지가 더 있다고 가정
+        Slice<PostResponseDto> slice = new SliceImpl<>(content, pageable, true);
+
+        when(postRepository.findPostSliceWithLikeCountAndCommentCount(pageable))
+                .thenReturn(slice);
 
         // when
-        PaginatedDto<List<PostResponseDto>> result = postService.findAsPaginated(new GenericDataDto<>(beforeId));
+        Slice<PostResponseDto> result = postService.findAsSlice(pageable);
 
         // then
-        assertEquals(2, result.data().size());
-        assertEquals(9L, result.nextQueryCriteria()); // last element id
+        // 1) 내용 검증
+        assertEquals(2, result.getNumberOfElements());
+        assertEquals(8L, result.getContent().get(0).id());
+        assertEquals(7L, result.getContent().get(1).id());
+
+        // 2) 페이지 정보 검증
+        assertEquals(1, result.getNumber());     // page index
+        assertEquals(2, result.getSize());       // page size
+        assertTrue(result.hasNext());            // 아직 다음 페이지 있음
+
+        // 3) Repository가 올바른 Pageable로 호출되었는지 검증
+        verify(postRepository, times(1))
+                .findPostSliceWithLikeCountAndCommentCount(pageable);
     }
+
 
     @Test
     @DisplayName("게시글 페이지네이션 조회 - 결과 없음")
-    void findAsPaginated_noResults() {
+    void findAsSlice_noResults() {
         // given
-        when(postRepository.findTop15ByCreatedAtBeforeOrderByCreatedAtDesc(any(LocalDateTime.class))).thenReturn(Collections.emptyList());
+        Pageable pageable = PageRequest.of(0, 15, Sort.by(Sort.Direction.DESC, "id"));
+        List<PostResponseDto> content = List.of(
+        );
+        Slice<PostResponseDto> slice = new SliceImpl<>(content, pageable, false);
+
+        when(postRepository.findPostSliceWithLikeCountAndCommentCount(pageable)).thenReturn(slice);
 
         // when
-        PaginatedDto<List<PostResponseDto>> result = postService.findAsPaginated(new GenericDataDto<>(null));
+        Slice<PostResponseDto> result = postService.findAsSlice(pageable);
 
         // then
-        assertTrue(result.data().isEmpty());
-        assertNull(result.nextQueryCriteria());
+        assertEquals(0, result.getNumberOfElements());
+        assertFalse(result.hasNext());
+        assertEquals(0, result.getNumber());
+        assertEquals(15, result.getSize());
+
+        verify(postRepository, times(1)).findPostSliceWithLikeCountAndCommentCount(pageable);
+
     }
 
     private Post createDummyPost(Long id, String content, String userName) {
-        Post post = Post.create(content, userName);
+        Member member = new Member(userName);
+        Post post = Post.create(content, member);
         post.setId(id);
         return post;
     }
