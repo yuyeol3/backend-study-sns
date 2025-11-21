@@ -13,7 +13,7 @@ import jakarta.persistence.*;
 )
 public class PostLikes extends BaseLikeEntity{
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "post_id")
     private Post post;
 

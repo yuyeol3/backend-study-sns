@@ -23,9 +23,8 @@ public class PostLikesService extends LikesService<PostLikes> {
     private final PostLikesRepository postLikesRepository;
     private final MemberRepository memberRepository;
     private final PostRepository postRepository;
-    public PostLikesService(PostLikesRepository postLikesRepository,
-                            MemberRepository memberRepository,
-                            PostRepository postRepository) {
+
+    public PostLikesService(PostLikesRepository postLikesRepository, MemberRepository memberRepository, PostRepository postRepository) {
         this.postLikesRepository = postLikesRepository;
         this.memberRepository = memberRepository;
         this.postRepository = postRepository;

@@ -2,14 +2,13 @@ package com.example.devSns;
 
 
 import com.example.devSns.dto.ErrorDto;
-import com.example.devSns.exception.InvalidRequestException;
-import com.example.devSns.exception.NotFoundException;
-import com.example.devSns.exception.RequestConflictException;
+import com.example.devSns.exception.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestCookieException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.client.HttpClientErrorException;
@@ -49,6 +48,17 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(409).body(new ErrorDto(e.getMessage()));
     }
 
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<ErrorDto> handleUnauthorizedException(UnauthorizedException e) {
+        return ResponseEntity.status(401).body(new ErrorDto(e.getMessage()));
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ErrorDto> handleForbiddenException(ForbiddenException e) {
+        return ResponseEntity.status(403).body(new ErrorDto(e.getMessage()));
+    }
+
+
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ErrorDto> handleNoResource(NoResourceFoundException e) {
         // 필요하면 logger.debug로만 남기기
@@ -59,6 +69,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ErrorDto> handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException e) {
         return ResponseEntity.status(404).body(new ErrorDto("Not Found"));
+    }
+
+    @ExceptionHandler(MissingRequestCookieException.class)
+    public ResponseEntity<ErrorDto> handleMissingRequestCookieException(MissingRequestCookieException e) {
+        return ResponseEntity.status(400).body(new ErrorDto("Invalid Request"));
     }
 
     @ExceptionHandler(Exception.class)

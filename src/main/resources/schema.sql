@@ -4,6 +4,7 @@ drop table if exists comments cascade;
 drop table if exists posts_likes cascade;
 drop table if exists posts cascade;
 drop table if exists member_follows cascade;
+drop table if exists refresh_tokens cascade ;
 drop table if exists members cascade;
 
 
@@ -19,7 +20,17 @@ create table if not exists members
     version BIGINT default 0
 
 );
-create index email_index on members(email);
+create index members_nickname_index on members(nickname);
+create index members_email_index on members(email);
+
+create table if not exists refresh_tokens(
+    id BINARY(32) primary key,
+    member_id BIGINT,
+    valid_until DATETIME not null,
+    valid BOOL not null default true,
+    foreign key (member_id) references members(id) on delete cascade
+);
+
 
 create table if not exists member_follows
 (

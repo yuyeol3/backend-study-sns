@@ -13,7 +13,7 @@ import jakarta.persistence.*;
 )
 public class CommentLikes extends BaseLikeEntity{
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "comment_id")
     private Comment comment;
 

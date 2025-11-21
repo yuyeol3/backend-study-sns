@@ -3,10 +3,12 @@ package com.example.devSns.service;
 import com.example.devSns.domain.Member;
 import com.example.devSns.dto.member.MemberCreateDto;
 import com.example.devSns.dto.member.MemberResponseDto;
+import com.example.devSns.exception.InvalidRequestException;
 import com.example.devSns.exception.NotFoundException;
 import com.example.devSns.repository.MemberRepository;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
+import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,7 +23,12 @@ public class MemberService {
 
     @Transactional
     public Long create(MemberCreateDto memberCreateDto) {
-        Member member = new Member(memberCreateDto.nickname());
+        if (memberRepository.findByEmail(memberCreateDto.email()).isPresent()) {
+            throw new InvalidRequestException("Already signed up");
+        }
+
+        String passwordHash = BCrypt.hashpw(memberCreateDto.password(), BCrypt.gensalt());
+        Member member = new Member(memberCreateDto.nickname(), memberCreateDto.email(), passwordHash);
         return memberRepository.save(member).getId();
     }
 

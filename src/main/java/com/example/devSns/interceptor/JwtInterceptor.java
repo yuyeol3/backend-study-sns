@@ -10,16 +10,21 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.cors.CorsUtils;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.HandlerMapping;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+
+@Slf4j
 @Component
 public class JwtInterceptor implements HandlerInterceptor {
+
     private final JwtUtil jwtUtil;
     private final Map<String, Set<HttpMethod>> allowedMethods;
+
 
     public JwtInterceptor(JwtUtil jwtUtil) {
         this.jwtUtil = jwtUtil;
@@ -42,7 +47,7 @@ public class JwtInterceptor implements HandlerInterceptor {
         String pattern = (String) request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
 
         if (pattern == null) {
-            throw new NotFoundException("Not found");
+            return false;
         }
 
         if (checkMethodAllows(pattern, HttpMethod.valueOf(request.getMethod()))) {
@@ -50,7 +55,7 @@ public class JwtInterceptor implements HandlerInterceptor {
         }
 
         String authHeader = request.getHeader("Authorization");
-
+        log.info("Authorization header: {}", authHeader);
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.getWriter().write("Unauthorized");

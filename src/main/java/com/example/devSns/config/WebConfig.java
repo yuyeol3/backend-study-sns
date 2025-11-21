@@ -25,10 +25,12 @@ public class WebConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         jwtInterceptor.setMethodAllows("/posts", Set.of(HttpMethod.GET));
         jwtInterceptor.setMethodAllows("/posts/{id}/comments", Set.of(HttpMethod.GET));
+        jwtInterceptor.setMethodAllows("/members", Set.of(HttpMethod.POST));
 
         registry.addInterceptor(jwtInterceptor)
                 .addPathPatterns("/**")
-                .excludePathPatterns("/auth/**");
+                .excludePathPatterns("/auth/login")
+                .excludePathPatterns("/auth");
     }
 
     @Override

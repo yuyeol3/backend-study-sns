@@ -35,13 +35,20 @@ public class Member extends BaseTimeEntity {
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "member", cascade = CascadeType.ALL)
     private List<PostLikes> postLikes;
 
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "member", cascade = CascadeType.ALL)
+    private List<CommentLikes> commentLikes;
+
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<RefreshTokens> refreshTokens;
+
     @Version
     private Long version;
 
     public Member() {}
-    // todo : email, password 포함하는 생성자로 바꾸기
-    public Member(String nickname) {
+    public Member(String nickname, String email, String passwordHash) {
         this.nickname = nickname;
+        this.email = email;
+        this.password = passwordHash;
     }
 
     public Long getId() {
@@ -58,6 +65,10 @@ public class Member extends BaseTimeEntity {
     
     public String getPassword() {
         return password;
+    }
+
+    public void addRefreshToken(RefreshTokens refreshToken) {
+        refreshTokens.add(refreshToken);
     }
 
 }
