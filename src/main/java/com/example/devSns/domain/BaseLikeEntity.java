@@ -3,7 +3,7 @@ package com.example.devSns.domain;
 import jakarta.persistence.*;
 
 @MappedSuperclass
-public abstract class BaseLikeEntity extends BaseTimeEntity{
+public abstract class BaseLikeEntity extends BaseTimeEntity implements OwnableEntity{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

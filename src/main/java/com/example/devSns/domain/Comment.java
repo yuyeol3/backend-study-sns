@@ -14,7 +14,7 @@ import java.util.List;
 
 @Entity
 @Table(name="comments")
-public class Comment extends BaseTimeEntity{
+public class Comment extends BaseTimeEntity implements OwnableEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

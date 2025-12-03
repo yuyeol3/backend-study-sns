@@ -1,10 +1,9 @@
 package com.example.devSns.controller;
 
+import com.example.devSns.annotation.LoginUser;
 import com.example.devSns.dto.GenericDataDto;
-import com.example.devSns.dto.likes.LikesRequestDto;
 import com.example.devSns.dto.post.PostCreateDto;
 import com.example.devSns.dto.post.PostResponseDto;
-import com.example.devSns.service.PostLikesService;
 import com.example.devSns.service.PostService;
 import jakarta.annotation.Nullable;
 import jakarta.validation.Valid;
@@ -30,8 +29,10 @@ public class PostController {
     }
 
     @PostMapping
-    public ResponseEntity<GenericDataDto<Long>> create(@RequestBody @Valid PostCreateDto postCreateDto) {
-        Long id = postService.create(postCreateDto);
+    public ResponseEntity<GenericDataDto<Long>> create(
+            @RequestBody @Valid PostCreateDto postCreateDto, @LoginUser Long memberId
+    ) {
+        Long id = postService.create(postCreateDto, memberId);
 
         URI uri = ServletUriComponentsBuilder
                 .fromCurrentRequest()
@@ -44,13 +45,13 @@ public class PostController {
 
     @GetMapping("/{id}")
     public ResponseEntity<PostResponseDto> getOne(@PathVariable @Positive Long id) {
-        PostResponseDto post = postService.findOne(id);
+        PostResponseDto post = postService.findPostById(id);
         return ResponseEntity.ok().body(post);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable @Positive Long id) {
-        postService.delete(id);
+    public ResponseEntity<Void> delete(@PathVariable @Positive Long id, @LoginUser Long memberId) {
+        postService.delete(id, memberId);
         return ResponseEntity.noContent().build();
     }
 
@@ -74,9 +75,9 @@ public class PostController {
 
     @PatchMapping("/{id}/contents")
     public ResponseEntity<PostResponseDto> contents(
-            @PathVariable @Positive Long id, @RequestBody @Valid GenericDataDto<String> contentsDto) {
+            @PathVariable @Positive Long id, @RequestBody @Valid GenericDataDto<String> contentsDto, @LoginUser Long memberId) {
 
-        PostResponseDto post = postService.updateContent(id, contentsDto);
+        PostResponseDto post = postService.updateContent(id, contentsDto, memberId);
         return ResponseEntity.ok().body(post);
     }
 

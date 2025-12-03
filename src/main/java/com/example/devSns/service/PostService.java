@@ -5,9 +5,9 @@ import com.example.devSns.domain.Post;
 import com.example.devSns.dto.GenericDataDto;
 import com.example.devSns.dto.post.PostCreateDto;
 import com.example.devSns.dto.post.PostResponseDto;
+import com.example.devSns.exception.ForbiddenException;
 import com.example.devSns.exception.InvalidRequestException;
 import com.example.devSns.exception.NotFoundException;
-import com.example.devSns.repository.CommentRepository;
 import com.example.devSns.repository.MemberRepository;
 import com.example.devSns.repository.PostRepository;
 import org.springframework.data.domain.Pageable;
@@ -28,32 +28,35 @@ public class PostService {
     }
 
     @Transactional
-    public Long create(PostCreateDto postCreateDto) {
-        Member member = memberRepository.findById(postCreateDto.memberId()).orElseThrow(()->new NotFoundException("member not found"));
+    public Long create(PostCreateDto postCreateDto, Long memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(()->new NotFoundException("member not found"));
         Post post = Post.create(postCreateDto.content(), member);
         return postRepository.save(post).getId();
     }
 
-    public PostResponseDto findOne(Long id) {
+    public PostResponseDto findPostById(Long id) {
         Post post = postRepository.findById(id).orElseThrow(()->new NotFoundException("post not found"));
         return PostResponseDto.from(post);
     }
 
     @Transactional
-    public void delete(Long id) {
+    public void delete(Long id, Long memberId) {
         Post post = postRepository.findById(id).orElseThrow(()->new NotFoundException("post not found"));
+        if (!post.checkOwnership(memberId)) throw new ForbiddenException("Forbidden");
         postRepository.delete(post);
     }
 
     @Transactional
-    public PostResponseDto updateContent(Long id, GenericDataDto<String> contentsDto) {
+    public PostResponseDto updateContent(Long id, GenericDataDto<String> contentsDto, Long memberId) {
         if (contentsDto.data() == null || contentsDto.data().isEmpty())
             throw new InvalidRequestException("Invalid request.");
 
         Post post = postRepository.findById(id).orElseThrow(()->new NotFoundException("post not found"));
+        if (!post.checkOwnership(memberId)) throw new ForbiddenException("Forbidden");
         post.setContent(contentsDto.data());
 
-        return findOne(id);
+        return findPostById(id);
     }
 
     public Slice<PostResponseDto> findAsSlice(Pageable pageable) {

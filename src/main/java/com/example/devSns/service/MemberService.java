@@ -43,13 +43,5 @@ public class MemberService {
         return members.map(MemberResponseDto::from);
     }
 
-    public Slice<MemberResponseDto> findFollowers(Pageable pageable, Long memberId) {
-        return memberRepository.findFollowers(memberId, pageable);
-    }
-
-    public Slice<MemberResponseDto> findFollowing(Pageable pageable, Long memberId) {
-        return memberRepository.findFollowings(memberId, pageable);
-    }
-
 
 }

@@ -24,6 +24,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         SELECT NEW com.example.devSns.dto.post.PostResponseDto(
             p.id,
             p.content,
+            m.id,
             m.nickname,
             (select count(*) as likes from PostLikes pl where p = pl.post),
             p.createdAt,
@@ -39,6 +40,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     SELECT NEW com.example.devSns.dto.post.PostResponseDto(
             p.id,
             p.content,
+            m.id,
             m.nickname,
             (select count(*) as likes from PostLikes pl where p = pl.post),
             p.createdAt,

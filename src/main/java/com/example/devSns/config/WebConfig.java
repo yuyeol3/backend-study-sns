@@ -24,13 +24,26 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         jwtInterceptor.setMethodAllows("/posts", Set.of(HttpMethod.GET));
-        jwtInterceptor.setMethodAllows("/posts/{id}/comments", Set.of(HttpMethod.GET));
+        jwtInterceptor.setMethodAllows("/posts/{postId}/comments", Set.of(HttpMethod.GET));
         jwtInterceptor.setMethodAllows("/members", Set.of(HttpMethod.POST));
+        jwtInterceptor.setMethodAllows("/", Set.of(HttpMethod.GET));
 
         registry.addInterceptor(jwtInterceptor)
                 .addPathPatterns("/**")
-                .excludePathPatterns("/auth/login")
-                .excludePathPatterns("/auth");
+                .excludePathPatterns(
+                        "/auth/login",
+                        "/auth",
+                        "/",              // SPA 진입점
+                        "/index.html",
+                        "/favicon.ico",
+                        "/error",
+                        "/static/**",
+                        "/css/**",
+                        "/js/**",
+                        "/images/**"
+                );
+//                .excludePathPatterns("/auth/login")
+//                .excludePathPatterns("/auth");
     }
 
     @Override

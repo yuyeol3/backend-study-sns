@@ -7,7 +7,7 @@ import com.example.devSns.dto.GenericDataDto;
 import com.example.devSns.dto.PaginatedDto;
 import com.example.devSns.dto.comment.CommentCreateDto;
 import com.example.devSns.dto.comment.CommentResponseDto;
-import com.example.devSns.dto.post.PostResponseDto;
+import com.example.devSns.exception.ForbiddenException;
 import com.example.devSns.exception.InvalidRequestException;
 import com.example.devSns.exception.NotFoundException;
 import com.example.devSns.repository.CommentRepository;
@@ -35,8 +35,9 @@ public class CommentService {
     }
 
     @Transactional
-    public Long create(CommentCreateDto commentCreateDto) {
-        Member member = memberRepository.findById(commentCreateDto.memberId()).orElseThrow(() -> new NotFoundException("Member not found"));
+    public Long create(CommentCreateDto commentCreateDto, Long memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new NotFoundException("Member not found"));
         Post post = postRepository.findById(commentCreateDto.postId())
                 .orElseThrow(()->new InvalidRequestException("Invalid Request."));
 
@@ -44,27 +45,29 @@ public class CommentService {
         return commentRepository.save(comment).getId();
     }
 
-    public CommentResponseDto findOne(Long id) {
+    public CommentResponseDto findCommentById(Long id) {
         Comment comment = commentRepository.findById(id).orElseThrow(()->new NotFoundException("comment not found"));
 
         return CommentResponseDto.from(comment);
     }
 
     @Transactional
-    public void delete(Long id) {
+    public void delete(Long id, Long memberId) {
         Comment comment = commentRepository.findById(id).orElseThrow(()->new NotFoundException("comment not found"));
+        if (!comment.checkOwnership(memberId)) throw new ForbiddenException("Forbidden");
         commentRepository.delete(comment);
     }
 
     @Transactional
-    public CommentResponseDto updateContent(Long id, GenericDataDto<String> contentsDto) {
+    public CommentResponseDto updateContent(Long id, GenericDataDto<String> contentsDto, Long memberId) {
         if (contentsDto.data() == null || contentsDto.data().isEmpty())
             throw new InvalidRequestException("Invalid Request.");
 
         Comment comment = commentRepository.findById(id).orElseThrow(()->new NotFoundException("comment not found"));
+        if (!comment.checkOwnership(memberId)) throw new ForbiddenException("Forbidden");
         comment.setContent(contentsDto.data());
 
-        return findOne(id);
+        return findCommentById(id);
     }
 
     public PaginatedDto<List<CommentResponseDto>> findAsPaginated(GenericDataDto<Long> idDto, Long postId) {

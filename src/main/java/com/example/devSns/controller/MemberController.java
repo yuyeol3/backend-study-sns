@@ -1,8 +1,11 @@
 package com.example.devSns.controller;
 
+import com.example.devSns.annotation.LoginUser;
 import com.example.devSns.dto.GenericDataDto;
+import com.example.devSns.dto.follow.FollowRequestDto;
 import com.example.devSns.dto.member.MemberCreateDto;
 import com.example.devSns.dto.member.MemberResponseDto;
+import com.example.devSns.service.FollowsService;
 import com.example.devSns.service.MemberService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
@@ -22,8 +25,10 @@ import java.net.URI;
 public class MemberController {
 
     private final MemberService memberService;
-    public MemberController(MemberService memberService) {
+    private final FollowsService followsService;
+    public MemberController(MemberService memberService, FollowsService followsService) {
         this.memberService = memberService;
+        this.followsService = followsService;
     }
 
     @PostMapping
@@ -70,7 +75,7 @@ public class MemberController {
             Pageable pageable,
             @PathVariable Long id
     ) {
-        Slice<MemberResponseDto> members = memberService.findFollowers(pageable, id);
+        Slice<MemberResponseDto> members = followsService.findFollowers(pageable, id);
         return ResponseEntity.ok(members);
     }
 
@@ -84,7 +89,26 @@ public class MemberController {
             Pageable pageable,
             @PathVariable Long id
     ) {
-        Slice<MemberResponseDto> members = memberService.findFollowing(pageable, id);
+        Slice<MemberResponseDto> members = followsService.findFollowing(pageable, id);
         return ResponseEntity.ok(members);
+    }
+
+    @PostMapping("/{id}/follower")
+    public ResponseEntity<Void> follow(@PathVariable Long id, @LoginUser Long memberId) {
+        Long followId = followsService.follow(new FollowRequestDto(id, memberId));
+
+        URI uri = ServletUriComponentsBuilder
+                .fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(followId)
+                .toUri();
+
+        return ResponseEntity.created(uri).build();
+    }
+
+    @DeleteMapping("/{id}/follower")
+    public ResponseEntity<Void> unfollow(@PathVariable Long id, @LoginUser Long memberId) {
+        followsService.unfollow(new FollowRequestDto(id, memberId));
+        return ResponseEntity.noContent().build();
     }
 }

@@ -15,6 +15,7 @@ import java.util.List;
 public record PostResponseDto(
         Long id,
         String content,
+        @JsonProperty("user_id") Long userId,
         @JsonProperty("user_name") String userName,
         @JsonProperty("like_count") Long likeCount,
         @JsonProperty("created_at") LocalDateTime createdAt,
@@ -28,6 +29,7 @@ public record PostResponseDto(
         return new PostResponseDto(
                 post.getId(),
                 post.getContent(),
+                post.getMember().getId(),
                 post.getMember().getNickname(),
                 post.getPostLikes() == null ? 0L : post.getPostLikes().stream().count(),
                 post.getCreatedAt(),

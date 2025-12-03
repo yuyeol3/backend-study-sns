@@ -8,7 +8,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "posts")
-public class Post extends BaseTimeEntity{
+public class Post extends BaseTimeEntity implements OwnableEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

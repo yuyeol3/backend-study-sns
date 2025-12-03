@@ -40,7 +40,8 @@ create table if not exists member_follows
     created_at TIMESTAMP  not null,
     updated_at TIMESTAMP  not null ,
     foreign key (follower_id) references members (id) on delete cascade,
-    foreign key (following_id) references members (id) on delete cascade
+    foreign key (following_id) references members (id) on delete cascade,
+    constraint u_follower_following unique (follower_id, following_id)
 );
 
 

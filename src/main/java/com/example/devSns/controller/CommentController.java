@@ -1,9 +1,9 @@
 package com.example.devSns.controller;
 
+import com.example.devSns.annotation.LoginUser;
 import com.example.devSns.dto.GenericDataDto;
 import com.example.devSns.dto.comment.CommentCreateDto;
 import com.example.devSns.dto.comment.CommentResponseDto;
-import com.example.devSns.dto.post.PostResponseDto;
 import com.example.devSns.service.CommentService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
@@ -28,8 +28,8 @@ public class CommentController {
 
 
     @PostMapping
-    public ResponseEntity<GenericDataDto<Long>> create(@RequestBody @Valid CommentCreateDto commentCreateDto) {
-        Long id = commentService.create(commentCreateDto);
+    public ResponseEntity<GenericDataDto<Long>> create(@RequestBody @Valid CommentCreateDto commentCreateDto, @LoginUser Long memberId) {
+        Long id = commentService.create(commentCreateDto, memberId);
 
         URI uri = ServletUriComponentsBuilder
                 .fromCurrentRequest()
@@ -42,20 +42,21 @@ public class CommentController {
 
     @GetMapping("/{id}")
     public ResponseEntity<CommentResponseDto> getOne(@PathVariable @Positive Long id) {
-        CommentResponseDto comment = commentService.findOne(id);
+        CommentResponseDto comment = commentService.findCommentById(id);
         return ResponseEntity.ok().body(comment);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable @Positive Long id) {
-        commentService.delete(id);
+    public ResponseEntity<Void> delete(@PathVariable @Positive Long id, @LoginUser Long memberId) {
+        commentService.delete(id, memberId);
         return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/{id}/contents")
     public ResponseEntity<CommentResponseDto> contents(@PathVariable @Positive Long id,
-                                                       @RequestBody @Valid GenericDataDto<String> contentsDto) {
-        CommentResponseDto comment = commentService.updateContent(id, contentsDto);
+                                                       @RequestBody @Valid GenericDataDto<String> contentsDto,
+                                                       @LoginUser Long memberId) {
+        CommentResponseDto comment = commentService.updateContent(id, contentsDto, memberId);
         return ResponseEntity.ok().body(comment);
     }
 

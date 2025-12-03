@@ -1,6 +1,7 @@
 package com.example.devSns.controller;
 
 
+import com.example.devSns.annotation.LoginUser;
 import com.example.devSns.dto.GenericDataDto;
 import com.example.devSns.dto.likes.LikesRequestDto;
 import com.example.devSns.dto.member.MemberResponseDto;
@@ -8,6 +9,7 @@ import com.example.devSns.dto.post.PostResponseDto;
 import com.example.devSns.service.LikesService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
+import lombok.extern.java.Log;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
@@ -23,14 +25,14 @@ public abstract class LikeController<T> {
     }
 
     @PostMapping("/{id}/likes")
-    public ResponseEntity<Void> like(@PathVariable @Positive Long id, @RequestBody @Valid GenericDataDto<Long> memberIdDto) {
-        likeService.like(new LikesRequestDto(id, memberIdDto.data()));
+    public ResponseEntity<Void> like(@PathVariable @Positive Long id, @LoginUser Long memberId) {
+        likeService.like(new LikesRequestDto(id, memberId));
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{id}/likes")
-    public ResponseEntity<Void> unlike(@PathVariable @Positive Long id, @RequestBody @Valid GenericDataDto<Long> memberIdDto) {
-        likeService.unlike(new LikesRequestDto(id, memberIdDto.data()));
+    public ResponseEntity<Void> unlike(@PathVariable @Positive Long id, @LoginUser Long memberId) {
+        likeService.unlike(new LikesRequestDto(id, memberId));
         return ResponseEntity.noContent().build();
     }
 
