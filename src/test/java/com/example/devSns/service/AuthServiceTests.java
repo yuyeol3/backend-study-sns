@@ -5,6 +5,7 @@ import com.example.devSns.domain.RefreshTokens;
 import com.example.devSns.dto.GenericDataDto;
 import com.example.devSns.dto.auth.AuthResponseDto;
 import com.example.devSns.dto.auth.LoginDto;
+import com.example.devSns.dto.member.MemberCreateDto;
 import com.example.devSns.exception.NotFoundException;
 import com.example.devSns.exception.UnauthorizedException;
 import com.example.devSns.repository.MemberRepository;
@@ -15,15 +16,18 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.bcrypt.BCrypt;
+import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -41,189 +45,219 @@ class AuthServiceTests {
     @InjectMocks
     AuthService authService;
 
+    @Captor
+    ArgumentCaptor<RefreshTokens> refreshTokensCaptor;
+
+    private Member createMemberWithPassword(String rawPassword) {
+        String hash = BCrypt.hashpw(rawPassword, BCrypt.gensalt());
+        return new Member("tester", "test@example.com", hash);
+    }
+
+
     @Nested
     @DisplayName("login()")
     class LoginTests {
-
         @Test
-        @DisplayName("이메일/비밀번호가 올바르면 access/refresh 토큰을 반환한다")
+        @DisplayName("login 성공: 비밀번호가 맞으면 access, refresh 토큰을 발급하고 refreshTokens를 저장한다")
         void login_success() {
             // given
-            String email = "test@example.com";
             String rawPassword = "password123";
-            String hashedPassword = BCrypt.hashpw(rawPassword, BCrypt.gensalt());
+            Member member = createMemberWithPassword(rawPassword);
 
-            LoginDto loginDto = new LoginDto(email, rawPassword);
-
-            Member member = mock(Member.class);
-            when(memberRepository.findByEmail(email))
+            ReflectionTestUtils.setField(member, "id", 1L);
+            when(memberRepository.findByEmail("test@example.com"))
                     .thenReturn(Optional.of(member));
-            when(member.getPassword()).thenReturn(hashedPassword);
-            when(member.getId()).thenReturn(1L);
 
-            String expectedAccessToken = "access-token";
-            byte[] refreshTokenId = new byte[]{1, 2, 3, 4};
-            String expectedRefreshToken = Base64.getEncoder().encodeToString(refreshTokenId);
+            // access/refresh 토큰 관련 mock 세팅
+            when(jwtUtil.generateAccessToken(anyLong()))
+                    .thenReturn("mock-access-token");
 
-            when(jwtUtil.generateAccessToken(1L)).thenReturn(expectedAccessToken);
-            when(jwtUtil.generateRefreshToken()).thenReturn(refreshTokenId);
-            when(jwtUtil.getRefreshExpiration()).thenReturn(3600L); // seconds
+            byte[] rawRefreshBytes = "RAW_REFRESH_TOKEN_32BYTES_____123456".getBytes(); // 길이는 딱히 중요 X
+            byte[] hashedRefreshBytes = "HASHED_REFRESH_TOKEN_32_____123456".getBytes();
+
+            when(jwtUtil.generateRefreshToken())
+                    .thenReturn(rawRefreshBytes);
+            when(jwtUtil.hashToken(rawRefreshBytes))
+                    .thenReturn(hashedRefreshBytes);
+            when(jwtUtil.getRefreshExpiration())
+                    .thenReturn(3600L);
+
+            LoginDto dto = new LoginDto("test@example.com", rawPassword);
 
             // when
-            AuthResponseDto response = authService.login(loginDto);
+            AuthResponseDto result = authService.login(dto);
 
             // then
-            assertEquals(expectedAccessToken, response.accessToken());
-            assertEquals(expectedRefreshToken, response.refreshToken());
+            assertThat(result.accessToken()).isEqualTo("mock-access-token");
+            assertThat(result.refreshToken()).isNotBlank();
 
-            // refresh token 이 member 에 추가되었는지 확인
-            ArgumentCaptor<RefreshTokens> captor = ArgumentCaptor.forClass(RefreshTokens.class);
-            verify(member, times(1)).addRefreshToken(captor.capture());
-            RefreshTokens savedToken = captor.getValue();
-            assertNotNull(savedToken);
-            assertEquals(expectedRefreshToken, savedToken.getRefreshToken());
+            // refreshToken이 Base64로 인코딩 되었는지 확인
+            byte[] decoded = Base64.getDecoder().decode(result.refreshToken());
+            assertThat(decoded).isEqualTo(rawRefreshBytes);
 
-            verify(jwtUtil, times(1)).generateAccessToken(1L);
-            verify(jwtUtil, times(1)).generateRefreshToken();
+            // RefreshTokens 엔티티가 잘 저장됐는지 확인
+            verify(refreshTokensRepository).save(refreshTokensCaptor.capture());
+            RefreshTokens saved = refreshTokensCaptor.getValue();
+
+            assertThat(saved.getTokenHash()).isEqualTo(hashedRefreshBytes);
+            assertThat(saved.getMember()).isEqualTo(member);
+            assertThat(saved.isValidToken()).isTrue();
+            assertThat(saved.getTokenHash()).isNotNull();
         }
 
         @Test
-        @DisplayName("해당 이메일이 없으면 NotFoundException 발생")
-        void login_email_not_found() {
-            // given
-            String email = "not-exist@example.com";
-            LoginDto loginDto = new LoginDto(email, "password123");
-
-            when(memberRepository.findByEmail(email))
+        @DisplayName("login 실패: 이메일이 없으면 NotFoundException")
+        void login_emailNotFound() {
+            when(memberRepository.findByEmail("none@example.com"))
                     .thenReturn(Optional.empty());
 
-            // when & then
-            assertThrows(NotFoundException.class, () -> authService.login(loginDto));
-            verify(jwtUtil, never()).generateAccessToken(anyLong());
+            LoginDto dto = new LoginDto("none@example.com", "password123");
+
+            assertThatThrownBy(() -> authService.login(dto))
+                    .isInstanceOf(NotFoundException.class)
+                    .hasMessageContaining("Invalid email or password");
         }
 
         @Test
-        @DisplayName("비밀번호가 틀리면 NotFoundException 발생 (보안상 동일 메시지)")
-        void login_wrong_password() {
+        @DisplayName("login 실패: 비밀번호가 틀리면 NotFoundException")
+        void login_wrongPassword() {
             // given
-            String email = "test@example.com";
-            String rawPassword = "password123";
-            String otherPassword = "wrong-password";
-
-            String hashedPassword = BCrypt.hashpw(otherPassword, BCrypt.gensalt());
-
-            LoginDto loginDto = new LoginDto(email, rawPassword);
-
-            Member member = mock(Member.class);
-            when(memberRepository.findByEmail(email))
+            Member member = createMemberWithPassword("correctPassword");
+            when(memberRepository.findByEmail(member.getEmail()))
                     .thenReturn(Optional.of(member));
-            when(member.getPassword()).thenReturn(hashedPassword);
 
-            // when & then
-            assertThrows(NotFoundException.class, () -> authService.login(loginDto));
-            verify(jwtUtil, never()).generateAccessToken(anyLong());
+            LoginDto dto = new LoginDto(member.getEmail(), "wrongPassword");
+
+            // expect
+            assertThatThrownBy(() -> authService.login(dto))
+                    .isInstanceOf(NotFoundException.class)
+                    .hasMessageContaining("Invalid email or password");
         }
+
+    }
+
+
+    @Nested
+    @DisplayName("reAuth()")
+    class ReAuthTests {
+        @Test
+        @DisplayName("reAuth 성공: 유효한 refresh 토큰이면 새로운 access 토큰을 발급한다")
+        void reAuth_success() {
+            // given
+            Member member = createMemberWithPassword("password123");
+            ReflectionTestUtils.setField(member, "id", 1L);
+            byte[] rawBytes = "RAW_REFRESH_TOKEN_32BYTES_____123456".getBytes();
+            byte[] hashedBytes = "HASHED_REFRESH_TOKEN_32_____123456".getBytes();
+
+            String encoded = Base64.getEncoder().encodeToString(rawBytes);
+
+            RefreshTokens tokenEntity = new RefreshTokens(
+                    hashedBytes,
+                    LocalDateTime.now().plusSeconds(3600),
+                    member
+            );
+
+            when(jwtUtil.hashToken(rawBytes)).thenReturn(hashedBytes);
+            when(refreshTokensRepository.findById(hashedBytes))
+                    .thenReturn(Optional.of(tokenEntity));
+            when(jwtUtil.generateAccessToken(member.getId()))
+                    .thenReturn("new-access-token");
+
+            // when
+            GenericDataDto<String> result = authService.reAuth(encoded);
+
+            // then
+            assertThat(result.data()).isEqualTo("new-access-token");
+        }
+
+        @Test
+        @DisplayName("reAuth 실패: DB에 없는 refresh 토큰이면 UnauthorizedException")
+        void reAuth_unknownToken() {
+            byte[] rawBytes = "SOME_UNKNOWN_RAW_TOKEN___________".getBytes();
+            byte[] hashedBytes = "HASHED_UNKNOWN_TOKEN____________".getBytes();
+            String encoded = Base64.getEncoder().encodeToString(rawBytes);
+
+            when(jwtUtil.hashToken(rawBytes)).thenReturn(hashedBytes);
+            when(refreshTokensRepository.findById(hashedBytes))
+                    .thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> authService.reAuth(encoded))
+                    .isInstanceOf(UnauthorizedException.class)
+                    .hasMessage("Unauthorized");
+        }
+
+        @Test
+        @DisplayName("reAuth 실패: 만료된 토큰이면 UnauthorizedException")
+        void reAuth_expiredToken() {
+            Member member = createMemberWithPassword("password123");
+
+            byte[] rawBytes = "RAW_EXPIRED_REFRESH_TOKEN________".getBytes();
+            byte[] hashedBytes = "HASHED_EXPIRED_REFRESH_TOKEN_____".getBytes();
+            String encoded = Base64.getEncoder().encodeToString(rawBytes);
+
+            RefreshTokens expired = new RefreshTokens(
+                    hashedBytes,
+                    LocalDateTime.now().minusSeconds(10),
+                    member
+            );
+
+            when(jwtUtil.hashToken(rawBytes)).thenReturn(hashedBytes);
+            when(refreshTokensRepository.findById(hashedBytes))
+                    .thenReturn(Optional.of(expired));
+
+            assertThatThrownBy(() -> authService.reAuth(encoded))
+                    .isInstanceOf(UnauthorizedException.class)
+                    .hasMessage("Unauthorized");
+        }
+
     }
 
     @Nested
     @DisplayName("logout()")
     class LogoutTests {
-
         @Test
-        @DisplayName("유효한 refresh token 이면 해당 토큰을 disable 한다")
+        @DisplayName("logout: 해당 refresh 토큰의 valid 플래그를 false로 바꾼다")
         void logout_success() {
-            // given
-            byte[] tokenId = new byte[]{10, 20, 30};
-            String encoded = Base64.getEncoder().encodeToString(tokenId);
+            Member member = createMemberWithPassword("password123");
 
-            RefreshTokens refreshTokens = mock(RefreshTokens.class);
-            when(refreshTokensRepository.findById(tokenId))
-                    .thenReturn(Optional.of(refreshTokens));
+            byte[] rawBytes = "RAW_REFRESH_TOKEN_LOGOUT_________".getBytes();
+            byte[] hashedBytes = "HASHED_REFRESH_TOKEN_LOGOUT______".getBytes();
+            String encoded = Base64.getEncoder().encodeToString(rawBytes);
+
+            RefreshTokens tokenEntity = new RefreshTokens(
+                    hashedBytes,
+                    LocalDateTime.now().plusSeconds(3600),
+                    member
+            );
+
+            when(jwtUtil.hashToken(rawBytes)).thenReturn(hashedBytes);
+            when(refreshTokensRepository.findById(hashedBytes))
+                    .thenReturn(Optional.of(tokenEntity));
 
             // when
             authService.logout(encoded);
 
             // then
-            verify(refreshTokensRepository, times(1)).findById(tokenId);
-            verify(refreshTokens, times(1)).disable();
+            assertThat(tokenEntity.isValidToken()).isFalse();
+
         }
 
         @Test
-        @DisplayName("DB에 없는 refresh token 이면 IllegalStateException 발생")
-        void logout_token_not_found() {
-            // given
-            byte[] tokenId = new byte[]{10, 20, 30};
-            String encoded = Base64.getEncoder().encodeToString(tokenId);
+        @DisplayName("logout 실패: DB에 없는 토큰이면 IllegalStateException")
+        void logout_tokenNotFound() {
+            byte[] rawBytes = "RAW_UNKNOWN_TOKEN_FOR_LOGOUT______".getBytes();
+            byte[] hashedBytes = "HASHED_UNKNOWN_TOKEN_FOR_LOGOUT__".getBytes();
+            String encoded = Base64.getEncoder().encodeToString(rawBytes);
 
-            when(refreshTokensRepository.findById(tokenId))
+            when(jwtUtil.hashToken(rawBytes)).thenReturn(hashedBytes);
+            when(refreshTokensRepository.findById(hashedBytes))
                     .thenReturn(Optional.empty());
 
-            // when & then
-            assertThrows(IllegalStateException.class, () -> authService.logout(encoded));
+            assertThatThrownBy(() -> authService.logout(encoded))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Logout Failed");
         }
     }
 
-    @Nested
-    @DisplayName("reAuth()")
-    class ReAuthTests {
 
-        @Test
-        @DisplayName("유효한 refresh token 이면 새 access token 을 발급한다")
-        void reauth_success() {
-            // given
-            byte[] tokenId = new byte[]{5, 6, 7, 8};
-            String encoded = Base64.getEncoder().encodeToString(tokenId);
-
-            RefreshTokens refreshTokens = mock(RefreshTokens.class);
-            when(refreshTokensRepository.findById(tokenId))
-                    .thenReturn(Optional.of(refreshTokens));
-            when(refreshTokens.isValidToken()).thenReturn(true);
-
-            Member member = mock(Member.class);
-            when(member.getId()).thenReturn(42L);
-            when(refreshTokens.getMember()).thenReturn(member);
-
-            String expectedAccessToken = "new-access-token";
-            when(jwtUtil.generateAccessToken(42L)).thenReturn(expectedAccessToken);
-
-            // when
-            GenericDataDto<String> dto = authService.reAuth(encoded);
-
-            // then
-            assertEquals(expectedAccessToken, dto.data());
-            verify(jwtUtil, times(1)).generateAccessToken(42L);
-        }
-
-        @Test
-        @DisplayName("refresh token 이 DB에 없으면 UnauthorizedException 발생")
-        void reauth_token_not_found() {
-            // given
-            byte[] tokenId = new byte[]{5, 6, 7, 8};
-            String encoded = Base64.getEncoder().encodeToString(tokenId);
-
-            when(refreshTokensRepository.findById(tokenId))
-                    .thenReturn(Optional.empty());
-
-            // when & then
-            assertThrows(UnauthorizedException.class, () -> authService.reAuth(encoded));
-            verify(jwtUtil, never()).generateAccessToken(anyLong());
-        }
-
-        @Test
-        @DisplayName("refresh token 이 만료/비활성화 상태면 UnauthorizedException 발생")
-        void reauth_invalid_token() {
-            // given
-            byte[] tokenId = new byte[]{5, 6, 7, 8};
-            String encoded = Base64.getEncoder().encodeToString(tokenId);
-
-            RefreshTokens refreshTokens = mock(RefreshTokens.class);
-            when(refreshTokensRepository.findById(tokenId))
-                    .thenReturn(Optional.of(refreshTokens));
-            when(refreshTokens.isValidToken()).thenReturn(false);
-
-            // when & then
-            assertThrows(UnauthorizedException.class, () -> authService.reAuth(encoded));
-            verify(jwtUtil, never()).generateAccessToken(anyLong());
-        }
-    }
 }

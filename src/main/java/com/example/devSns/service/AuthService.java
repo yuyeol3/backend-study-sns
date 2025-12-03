@@ -42,31 +42,35 @@ public class AuthService {
         String hashedPassword = member.getPassword();
         if (BCrypt.checkpw(loginDto.password(), hashedPassword)) {
             String accessToken = jwtUtil.generateAccessToken(member.getId());
-            byte[] refreshTokenId = jwtUtil.generateRefreshToken();
+            byte[] rawRefreshToken = jwtUtil.generateRefreshToken();
+            byte[] hashedRefreshToken = jwtUtil.hashToken(rawRefreshToken);
 
-            RefreshTokens refreshToken = new RefreshTokens(refreshTokenId,
+            RefreshTokens refreshToken = new RefreshTokens(hashedRefreshToken,
                     LocalDateTime.now().plusSeconds(jwtUtil.getRefreshExpiration()),
                     member
             );
-            member.addRefreshToken(refreshToken);
+            refreshTokensRepository.save(refreshToken);
 
-            return new AuthResponseDto(accessToken, refreshToken.getRefreshToken());
+            return new AuthResponseDto(accessToken, Base64.getEncoder().encodeToString(rawRefreshToken));
         }
         else throw new NotFoundException("Invalid email or password");
     }
 
     @Transactional
     public void logout(String refreshToken) {
-        byte[] decodedToken =  Base64.getDecoder().decode(refreshToken);
-        RefreshTokens refreshTokens = refreshTokensRepository.findById(decodedToken)
+        byte[] rawToken =  Base64.getDecoder().decode(refreshToken);
+        byte[] hashedToken = jwtUtil.hashToken(rawToken);
+        RefreshTokens refreshTokens = refreshTokensRepository.findById(hashedToken)
                 .orElseThrow(()->new IllegalStateException("Logout Failed"));
 
         refreshTokens.disable();
     }
 
     public GenericDataDto<String> reAuth(String refreshToken) {
-        byte[] decodedToken =  Base64.getDecoder().decode(refreshToken);
-        RefreshTokens refreshTokens = refreshTokensRepository.findById(decodedToken)
+        byte[] rawToken =  Base64.getDecoder().decode(refreshToken);
+        byte[] hashedToken = jwtUtil.hashToken(rawToken);
+
+        RefreshTokens refreshTokens = refreshTokensRepository.findById(hashedToken)
                 .orElseThrow(()->new UnauthorizedException("Unauthorized"));
 
         if (!refreshTokens.isValidToken()) {

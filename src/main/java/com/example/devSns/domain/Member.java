@@ -2,6 +2,7 @@ package com.example.devSns.domain;
 
 import jakarta.persistence.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -39,7 +40,7 @@ public class Member extends BaseTimeEntity {
     private List<CommentLikes> commentLikes;
 
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<RefreshTokens> refreshTokens;
+    private List<RefreshTokens> refreshTokens = new ArrayList<>();
 
     @Version
     private Long version;

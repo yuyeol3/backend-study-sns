@@ -46,8 +46,8 @@ public class RefreshTokens {
         return this.member;
     }
 
-    public String getRefreshToken() {
-        return Base64.getEncoder().encodeToString(id);
+    public byte[] getTokenHash() {
+        return id;
     }
 
 }
