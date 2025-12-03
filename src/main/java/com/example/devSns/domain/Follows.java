@@ -26,4 +26,12 @@ public class Follows extends BaseTimeEntity{
     public Long getId() {
         return id;
     }
+
+    public Member getFollower() {
+        return follower;
+    }
+
+    public Member getFollowing() {
+        return following;
+    }
 }

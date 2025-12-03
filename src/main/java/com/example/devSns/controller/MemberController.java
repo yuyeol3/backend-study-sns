@@ -3,6 +3,7 @@ package com.example.devSns.controller;
 import com.example.devSns.annotation.LoginUser;
 import com.example.devSns.dto.GenericDataDto;
 import com.example.devSns.dto.follow.FollowRequestDto;
+import com.example.devSns.dto.follow.FollowsResponseDto;
 import com.example.devSns.dto.member.MemberCreateDto;
 import com.example.devSns.dto.member.MemberResponseDto;
 import com.example.devSns.service.FollowsService;
@@ -65,6 +66,12 @@ public class MemberController {
     }
 
 
+    @GetMapping("/{followingId}/follower/{followerId}")
+    public ResponseEntity<FollowsResponseDto> getFollows(@PathVariable Long followingId, @PathVariable Long followerId) {
+        FollowsResponseDto follows = followsService.findFollows(new FollowRequestDto(followerId, followingId));
+        return ResponseEntity.ok(follows);
+    }
+
     @GetMapping("/{id}/follower")
     public ResponseEntity<Slice<MemberResponseDto>> getFollowers(
             @PageableDefault(
@@ -78,6 +85,8 @@ public class MemberController {
         Slice<MemberResponseDto> members = followsService.findFollowers(pageable, id);
         return ResponseEntity.ok(members);
     }
+
+
 
     @GetMapping("/{id}/following")
     public ResponseEntity<Slice<MemberResponseDto>> getFollowing(
@@ -95,12 +104,12 @@ public class MemberController {
 
     @PostMapping("/{id}/follower")
     public ResponseEntity<Void> follow(@PathVariable Long id, @LoginUser Long memberId) {
-        Long followId = followsService.follow(new FollowRequestDto(id, memberId));
+        Long followId = followsService.follow(new FollowRequestDto(memberId, id));
 
         URI uri = ServletUriComponentsBuilder
                 .fromCurrentRequest()
-                .path("/{id}")
-                .buildAndExpand(followId)
+                .path("/{followerId}")
+                .buildAndExpand(memberId)
                 .toUri();
 
         return ResponseEntity.created(uri).build();
@@ -108,7 +117,7 @@ public class MemberController {
 
     @DeleteMapping("/{id}/follower")
     public ResponseEntity<Void> unfollow(@PathVariable Long id, @LoginUser Long memberId) {
-        followsService.unfollow(new FollowRequestDto(id, memberId));
+        followsService.unfollow(new FollowRequestDto(memberId, id));
         return ResponseEntity.noContent().build();
     }
 }

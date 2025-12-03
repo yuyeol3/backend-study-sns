@@ -3,6 +3,7 @@ package com.example.devSns.service;
 import com.example.devSns.domain.Follows;
 import com.example.devSns.domain.Member;
 import com.example.devSns.dto.follow.FollowRequestDto;
+import com.example.devSns.dto.follow.FollowsResponseDto;
 import com.example.devSns.dto.member.MemberResponseDto;
 import com.example.devSns.exception.InvalidRequestException;
 import com.example.devSns.exception.NotFoundException;
@@ -38,6 +39,57 @@ class FollowsServiceTests {
 
     @InjectMocks
     FollowsService followsService;
+
+    @Nested
+    @DisplayName("findFollows()")
+    class FindFollowsTests {
+        @Test
+        @DisplayName("팔로우 관계가 존재하면 FollowsResponseDto를 반환한다")
+        void find_follows() {
+            // given
+            Long followerId = 1L;
+            Long followingId = 2L;
+
+            Member follower = mock(Member.class);
+            when(follower.getId()).thenReturn(followerId);
+            when(follower.getNickname()).thenReturn("follower");
+
+            Member following = mock(Member.class);
+            when(following.getId()).thenReturn(followingId);
+            when(following.getNickname()).thenReturn("following");
+
+            when(followsRepository.findByFollowerIdAndFollowingId(followerId, followingId))
+                    .thenReturn(Optional.of(new Follows(
+                            follower, following
+                    )));
+            // when
+            FollowsResponseDto follows = followsService.findFollows(new FollowRequestDto(followerId, followingId));
+
+            // then
+            assertNotNull(follows);
+            assertEquals(followerId, follows.follower().id());
+            assertEquals(followingId, follows.following().id());
+            assertEquals("follower", follows.follower().nickname());
+            assertEquals("following", follows.following().nickname());
+            verify(followsRepository, times(1)).findByFollowerIdAndFollowingId(followerId, followingId);
+        }
+
+        @Test
+        @DisplayName("팔로우 관계가 없으면 NotFoundException을 반환한다.")
+        void find_follows_not_found() {
+            // given
+            Long followerId = 1L;
+            Long followingId = 2L;
+
+            when(followsRepository.findByFollowerIdAndFollowingId(followerId, followingId))
+                    .thenReturn(Optional.empty());
+
+            // when & then
+            assertThrows(NotFoundException.class,
+                    ()->followsService.findFollows(new FollowRequestDto(followerId, followingId)));
+
+        }
+    }
 
     @Nested
     @DisplayName("follow()")

@@ -32,8 +32,9 @@ public class WebConfig implements WebMvcConfigurer {
                 .addPathPatterns("/**")
                 .excludePathPatterns(
                         "/auth/login",
+                        "/auth/logout",
                         "/auth",
-                        "/",              // SPA 진입점
+                        "/",
                         "/index.html",
                         "/favicon.ico",
                         "/error",
@@ -41,9 +42,9 @@ public class WebConfig implements WebMvcConfigurer {
                         "/css/**",
                         "/js/**",
                         "/images/**"
+
                 );
-//                .excludePathPatterns("/auth/login")
-//                .excludePathPatterns("/auth");
+
     }
 
     @Override

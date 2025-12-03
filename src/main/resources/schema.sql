@@ -44,6 +44,8 @@ create table if not exists member_follows
     constraint u_follower_following unique (follower_id, following_id)
 );
 
+create index follower_following on member_follows (follower_id, following_id);
+
 
 create table if not exists posts
 (

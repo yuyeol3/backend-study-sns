@@ -18,21 +18,22 @@
         }
     </script>
     <style>
-        /* 스크롤바 커스텀 (선택사항) */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .animate-fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 font-sans">
 
-<!-- ================= AUTH SCREEN (Login/Signup) ================= -->
-<div id="auth-screen" class="fixed inset-0 z-50 bg-slate-100 flex items-center justify-center p-4">
-    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-200">
+<!-- ================= AUTH SCREEN ================= -->
+<div id="auth-screen" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-200 relative">
+        <button onclick="closeAuth()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">✕</button>
         <h1 class="text-3xl font-bold text-center mb-8 text-brand tracking-tight">DevSns</h1>
 
-        <!-- Login Form -->
         <div id="login-form" class="space-y-5">
             <div>
                 <label class="block text-sm font-semibold text-slate-700 mb-1">이메일</label>
@@ -48,7 +49,6 @@
             </div>
         </div>
 
-        <!-- Signup Form -->
         <div id="signup-form" class="hidden space-y-5">
             <div>
                 <label class="block text-sm font-semibold text-slate-700 mb-1">닉네임</label>
@@ -71,21 +71,25 @@
     </div>
 </div>
 
-<!-- ================= APP SCREEN (Feed) ================= -->
+<!-- ================= APP SCREEN ================= -->
 <div id="app-screen" class="hidden min-h-screen pb-20">
-    <!-- Header -->
     <header class="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-slate-200">
         <div class="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
             <div class="flex items-center gap-2 cursor-pointer" onclick="window.scrollTo({top:0, behavior:'smooth'})">
                 <div class="h-8 w-8 rounded-lg bg-brand text-white flex items-center justify-center font-bold shadow-md shadow-indigo-200">D</div>
                 <h1 class="text-xl font-bold tracking-tight text-slate-800">DevSns</h1>
             </div>
-            <button id="btn-logout" class="text-xs font-medium text-slate-500 hover:text-slate-800 px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 transition">로그아웃</button>
+            <div class="flex items-center gap-2">
+                <button id="btn-feed-all" class="text-xs font-medium text-slate-500 hover:text-slate-800 px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 transition">전체 피드</button>
+                <button id="btn-mypage" class="hidden text-xs font-medium text-slate-600 hover:text-slate-900 px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 transition">마이페이지</button>
+                <button id="btn-login-open" class="text-xs font-medium text-brand px-3 py-1.5 border border-indigo-100 rounded-lg hover:bg-indigo-50 transition">로그인</button>
+                <button id="btn-logout" class="hidden text-xs font-medium text-slate-500 hover:text-slate-800 px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 transition">로그아웃</button>
+            </div>
         </div>
     </header>
 
     <main class="max-w-2xl mx-auto px-4 py-6 space-y-6">
-        <!-- New Post Input -->
+        <!-- New Post -->
         <section class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 transition-all focus-within:ring-2 focus-within:ring-brand/20">
             <div class="flex gap-3">
                 <div class="h-10 w-10 rounded-full bg-slate-100 shrink-0 flex items-center justify-center text-xl shadow-inner">✍️</div>
@@ -99,11 +103,8 @@
         </section>
 
         <!-- Feed List -->
-        <section id="feed-container" class="space-y-5">
-            <!-- Posts will be injected here -->
-        </section>
+        <section id="feed-container" class="space-y-5"></section>
 
-        <!-- Feed Loading State -->
         <div id="feed-loading" class="hidden text-center py-6">
             <div class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-indigo-100 border-r-brand align-[-0.125em]"></div>
         </div>
@@ -111,11 +112,10 @@
     </main>
 </div>
 
-<!-- ================= DRAWER (Post Detail & Comments) ================= -->
+<!-- ================= DRAWER ================= -->
 <div id="drawer" class="fixed inset-0 z-30 hidden transition-opacity duration-300">
     <div class="absolute inset-0 bg-black/30 backdrop-blur-sm transition-opacity" id="drawer-backdrop"></div>
     <aside class="absolute right-0 top-0 h-full w-full md:w-[500px] bg-white shadow-2xl flex flex-col transform transition-transform duration-300 translate-x-0">
-        <!-- Drawer Header -->
         <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-white/95 backdrop-blur z-10 sticky top-0">
             <h3 class="font-bold text-lg text-slate-800">포스트 상세</h3>
             <button id="drawer-close" class="text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full p-2 transition">
@@ -123,12 +123,9 @@
             </button>
         </div>
 
-        <!-- Drawer Body -->
         <div class="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar" id="drawer-body">
             <article id="drawer-post" class="space-y-4"></article>
-
             <div class="h-px bg-slate-100 my-2"></div>
-
             <section>
                 <div class="flex items-center justify-between mb-4">
                     <h4 class="font-bold text-slate-800">댓글 <span id="drawer-comment-count" class="text-brand ml-1">0</span></h4>
@@ -138,7 +135,6 @@
             </section>
         </div>
 
-        <!-- Drawer Footer -->
         <div class="p-4 border-t border-slate-100 bg-white sticky bottom-0">
             <div class="flex gap-2 items-center bg-slate-50 rounded-xl px-4 py-2 border border-slate-200 focus-within:border-brand focus-within:ring-1 focus-within:ring-brand transition">
                 <input id="new-comment-content" class="flex-1 bg-transparent border-none focus:ring-0 text-sm py-1 placeholder:text-slate-400" placeholder="댓글을 남겨보세요..." />
@@ -148,17 +144,62 @@
     </aside>
 </div>
 
-<!-- ================= USER LIST MODAL (Likes/Follows) ================= -->
+<!-- ================= MYPAGE MODAL ================= -->
+<div id="mypage-modal" class="fixed inset-0 z-[35] hidden flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" id="mypage-backdrop"></div>
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5 space-y-4 z-10">
+        <div class="flex items-center justify-between mb-2">
+            <h3 class="font-bold text-lg text-slate-900">마이페이지</h3>
+            <button id="mypage-close" class="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition">✕</button>
+        </div>
+        <div class="border border-slate-100 rounded-xl px-4 py-3 bg-slate-50 flex items-center gap-3">
+            <div class="h-9 w-9 rounded-full bg-slate-200 flex items-center justify-center font-bold text-sm text-slate-700" id="mypage-avatar">U</div>
+            <div>
+                <div id="mypage-username" class="font-bold text-slate-900 text-sm">내 계정</div>
+                <div id="mypage-userid" class="text-[11px] text-slate-400">ID -</div>
+            </div>
+        </div>
+        <div class="space-y-2">
+            <button id="btn-my-posts" class="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-slate-100 bg-white hover:bg-slate-50 transition text-sm">
+                <span>내 게시글 보기</span><span class="text-xs text-slate-400">Posts</span>
+            </button>
+            <button id="btn-my-comments" class="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-slate-100 bg-white hover:bg-slate-50 transition text-sm">
+                <span>내 댓글 보기</span><span class="text-xs text-slate-400">Comments</span>
+            </button>
+            <button id="btn-my-followers" class="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-slate-100 bg-white hover:bg-slate-50 transition text-sm">
+                <span>나를 팔로우하는 사람</span><span class="text-xs text-slate-400">Followers</span>
+            </button>
+            <button id="btn-my-followings" class="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-slate-100 bg-white hover:bg-slate-50 transition text-sm">
+                <span>내가 팔로우하는 사람</span><span class="text-xs text-slate-400">Followings</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ================= MY COMMENTS MODAL ================= -->
+<div id="mycomments-modal" class="fixed inset-0 z-[38] hidden flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" id="mycomments-backdrop"></div>
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg z-50 overflow-hidden flex flex-col max-h-[80vh]">
+        <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0">
+            <h3 class="font-bold text-lg text-slate-800">내 댓글</h3>
+            <button id="mycomments-close" class="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition">✕</button>
+        </div>
+        <div id="mycomments-list" class="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar"></div>
+        <div class="p-3 border-t border-slate-100 text-center bg-white">
+            <button id="btn-mycomments-more" class="hidden text-sm text-brand font-bold py-2 w-full hover:bg-slate-50 rounded-xl transition">더 보기</button>
+        </div>
+    </div>
+</div>
+
+<!-- ================= USER LIST MODAL ================= -->
 <div id="user-modal" class="fixed inset-0 z-[40] hidden flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" id="user-modal-backdrop"></div>
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm z-50 overflow-hidden flex flex-col max-h-[70vh] transform transition-all scale-100">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm z-50 overflow-hidden flex flex-col max-h-[70vh]">
         <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0">
             <h3 id="user-modal-title" class="font-bold text-lg text-slate-800">타이틀</h3>
             <button id="user-modal-close" class="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition">✕</button>
         </div>
-        <div id="user-modal-list" class="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
-            <!-- User items -->
-        </div>
+        <div id="user-modal-list" class="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar"></div>
         <div class="p-3 border-t border-slate-100 text-center bg-white">
             <button id="btn-user-modal-more" class="hidden text-sm text-brand font-bold py-2 w-full hover:bg-slate-50 rounded-xl transition">더 보기</button>
         </div>
@@ -174,23 +215,22 @@
     // ================= CONFIG & HELPERS =================
     const API_BASE = '';
     let accessToken = localStorage.getItem('accessToken') || null;
+    let currentUserId = null;
+    let currentUserProfile = null;
 
-    // State Variables
     let feedPage = 0, feedIsLast = false, isLoadingFeed = false, feedList = [];
+    let feedFilterMemberId = null;
     let currentPost = null, commentPage = 0, commentIsLast = false, commentList = [];
     let userModalEndpoint = '', userModalPage = 0, userModalIsLast = false;
+    let myCommentsPage = 0, myCommentsIsLast = false;
 
-    // DOM Selectors
     const qs = (sel) => document.querySelector(sel);
-
-    // Helpers
     function showToast(msg) {
         const t = qs('#toast');
         t.textContent = msg;
         t.classList.remove('opacity-0', 'translate-y-4');
         setTimeout(() => t.classList.add('opacity-0', 'translate-y-4'), 2500);
     }
-
     function timeAgo(dateString) {
         const date = new Date(dateString);
         const diff = (new Date() - date) / 1000;
@@ -199,101 +239,144 @@
         if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
         return date.toLocaleDateString();
     }
-
     function escapeHtml(text) {
         if (!text) return "";
         return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
+    function decodeUserIdFromToken(token) {
+        try {
+            const payload = token.split('.')[1];
+            const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+            const json = atob(base64);
+            const obj = JSON.parse(json);
+            return obj.sub ? Number(obj.sub) : null;
+        } catch (e) { return null; }
+    }
+    function openAuth() { qs('#auth-screen').classList.remove('hidden'); }
+    function closeAuth() { qs('#auth-screen').classList.add('hidden'); }
+    function requireAuth() {
+        if (!accessToken) { showToast('로그인이 필요한 기능입니다.'); openAuth(); return false; }
+        return true;
+    }
 
-    // ================= API CLIENT =================
+    // 버튼 상태 업데이트 (팔로우/팔로잉)
+    function setFollowButtonState(btn, following) {
+        if (!btn) return;
+        if (following) {
+            btn.dataset.following = 'true'; btn.textContent = '팔로잉';
+            btn.className = 'text-[11px] font-bold bg-indigo-50 text-brand px-2 py-1 rounded-full hover:bg-indigo-100 transition btn-follow';
+        } else {
+            btn.dataset.following = 'false'; btn.textContent = '팔로우';
+            btn.className = 'text-[11px] font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded-full hover:bg-slate-200 hover:text-slate-700 transition btn-follow';
+        }
+    }
+
+    // ================= API =================
     async function api(endpoint, options = {}) {
         const headers = { 'Content-Type': 'application/json' };
         if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
-
-        const config = {
-            method: options.method || 'GET',
-            headers: { ...headers, ...options.headers },
-        };
+        const config = { method: options.method || 'GET', headers: { ...headers, ...options.headers } };
         if (options.body) config.body = JSON.stringify(options.body);
 
-        try {
-            const res = await fetch(`${API_BASE}${endpoint}`, config);
-            if (res.status === 401) { logout(); throw new Error("세션 만료"); }
-            if (res.status === 204) return null;
-
-            const text = await res.text();
-            const data = text ? JSON.parse(text) : {};
-            if (!res.ok) throw new Error(data.error_message || '요청 실패');
-            return data;
-        } catch (err) {
-            console.error(err);
-            throw err;
+        const res = await fetch(`${API_BASE}${endpoint}`, config);
+        const status = res.status;
+        if (status === 401) {
+            localStorage.removeItem('accessToken');
+            accessToken = null;
+            const err = new Error("로그인이 필요합니다."); err.status = 401; throw err;
         }
+        if (status === 204) return null;
+        const text = await res.text();
+        const data = text ? JSON.parse(text) : {};
+        if (!res.ok) {
+            const err = new Error(data.error_message || '요청 실패'); err.status = status; throw err;
+        }
+        return data;
     }
 
     // ================= AUTH =================
-    function toggleAuthMode() {
-        qs('#login-form').classList.toggle('hidden');
-        qs('#signup-form').classList.toggle('hidden');
-        qs('#auth-msg').textContent = '';
+    function toggleAuthMode() { qs('#login-form').classList.toggle('hidden'); qs('#signup-form').classList.toggle('hidden'); }
+    async function initCurrentUser() {
+        currentUserId = null; currentUserProfile = null;
+        if (!accessToken) return;
+        try {
+            const uid = decodeUserIdFromToken(accessToken);
+            if (!uid) { logout(); return; }
+            currentUserId = uid;
+            currentUserProfile = await api(`/members/${currentUserId}`);
+        } catch (e) {}
     }
     function checkAuth() {
-        if (accessToken) {
-            qs('#auth-screen').classList.add('hidden');
-            qs('#app-screen').classList.remove('hidden');
-            loadFeed(true);
+        if (accessToken && currentUserId) {
+            qs('#btn-login-open').classList.add('hidden');
+            qs('#btn-logout').classList.remove('hidden');
+            qs('#btn-mypage').classList.remove('hidden');
+            const name = currentUserProfile?.nickname || 'User';
+            qs('#mypage-username').textContent = name;
+            qs('#mypage-avatar').textContent = name.charAt(0).toUpperCase();
+            qs('#mypage-userid').textContent = `ID ${currentUserId}`;
         } else {
-            qs('#auth-screen').classList.remove('hidden');
-            qs('#app-screen').classList.add('hidden');
+            qs('#btn-login-open').classList.remove('hidden');
+            qs('#btn-logout').classList.add('hidden');
+            qs('#btn-mypage').classList.add('hidden');
         }
+        qs('#app-screen').classList.remove('hidden');
+        loadFeed(true);
     }
     async function login() {
-        const email = qs('#login-email').value;
-        const password = qs('#login-pw').value;
-        if(!email || !password) return;
+        const email = qs('#login-email').value; const password = qs('#login-pw').value;
+        if (!email || !password) return;
         try {
             const res = await api('/auth/login', { method: 'POST', body: { email, password } });
-            accessToken = res.data;
-            localStorage.setItem('accessToken', accessToken);
+            accessToken = res.data; localStorage.setItem('accessToken', accessToken);
             qs('#login-email').value = ''; qs('#login-pw').value = '';
-            checkAuth();
+            await initCurrentUser(); closeAuth(); showToast('로그인되었습니다.'); checkAuth();
         } catch (e) { qs('#auth-msg').textContent = e.message; }
     }
     async function signup() {
-        const nickname = qs('#signup-nick').value;
-        const email = qs('#signup-email').value;
-        const password = qs('#signup-pw').value;
+        const nickname = qs('#signup-nick').value; const email = qs('#signup-email').value; const password = qs('#signup-pw').value;
         try {
             await api('/members', { method: 'POST', body: { nickname, email, password } });
-            alert('가입 성공! 로그인해주세요.'); toggleAuthMode();
+            alert('가입 성공!'); toggleAuthMode();
         } catch (e) { qs('#auth-msg').textContent = e.message; }
     }
-    function logout() {
-        localStorage.removeItem('accessToken');
-        accessToken = null;
-        window.location.reload();
+    async function logout() {
+        try {
+            // refresh_token은 쿠키에 있으니까, 같은 도메인이라면 그냥 호출만 하면 됨
+            await fetch('/auth/logout', {
+                method: 'GET',
+                credentials: 'include', // CORS나 서브도메인 쓴다면 필수
+            });
+        } catch (e) {
+            console.error('logout error', e);
+        } finally {
+            // 서버 쪽 처리와 상관없이 클라이언트 토큰은 무조건 지움
+            localStorage.removeItem('accessToken');
+            accessToken = null;
+            window.location.reload();
+        }
     }
 
-    // ================= FEED LOGIC =================
+
+    // ================= FEED =================
     async function loadFeed(reset = false) {
         if (isLoadingFeed) return;
-        if (reset) {
-            feedPage = 0; feedIsLast = false; feedList = [];
-            qs('#feed-container').innerHTML = ''; qs('#feed-end').classList.add('hidden');
-        }
+        if (reset) { feedPage = 0; feedIsLast = false; feedList = []; qs('#feed-container').innerHTML = ''; qs('#feed-end').classList.add('hidden'); }
         if (feedIsLast) return;
 
         isLoadingFeed = true;
         qs('#feed-loading').classList.remove('hidden');
         try {
-            const res = await api(`/posts?page=${feedPage}&size=10`);
+            let url = `/posts?page=${feedPage}&size=10`;
+            if (feedFilterMemberId) url += `&memberId=${feedFilterMemberId}`;
+            const res = await api(url);
             const newPosts = res.content || [];
             feedList = [...feedList, ...newPosts];
             feedIsLast = res.last;
             feedPage++;
             renderFeed(newPosts);
             if (feedIsLast) qs('#feed-end').classList.remove('hidden');
-        } catch (e) { showToast('피드 로드 실패'); }
+        } catch (e) { console.error(e); showToast('피드 로드 실패'); }
         finally { isLoadingFeed = false; qs('#feed-loading').classList.add('hidden'); }
     }
 
@@ -303,9 +386,16 @@
             const el = document.createElement('article');
             el.className = 'bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-lg transition-all duration-200';
 
-            // PostResponseDto now has: user_id, user_name, like_count, etc.
+            const isMe = currentUserId && post.user_id === currentUserId;
+            const followButtonHtml = !isMe
+                ? `<button class="text-[11px] font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded-full hover:bg-slate-200 hover:text-slate-700 transition btn-follow" data-uid="${post.user_id}" data-following="false">팔로우</button>`
+                : '';
+            const deleteBtnHtml = isMe
+                ? `<button class="text-slate-300 hover:text-rose-500 ml-auto transition btn-delete-post" title="삭제">✕</button>`
+                : '';
+
             el.innerHTML = `
-                <div class="flex items-start justify-between mb-3">
+                <div class="flex items-start mb-3">
                     <div class="flex items-center gap-3">
                         <div class="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-100 to-white border border-indigo-50 flex items-center justify-center font-bold text-brand shadow-sm">
                             ${post.user_name.charAt(0).toUpperCase()}
@@ -313,15 +403,14 @@
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="font-bold text-slate-900">${post.user_name}</span>
-                                <button class="text-[11px] font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded-full hover:bg-slate-200 hover:text-slate-700 transition btn-follow"
-                                        data-uid="${post.user_id}">팔로우</button>
+                                ${followButtonHtml}
                             </div>
                             <div class="text-xs text-slate-400 font-medium">${timeAgo(post.created_at)}</div>
                         </div>
                     </div>
+                    ${deleteBtnHtml}
                 </div>
                 <div class="text-slate-800 whitespace-pre-wrap leading-relaxed cursor-pointer post-content text-[15px] mb-4" data-id="${post.id}">${escapeHtml(post.content)}</div>
-
                 <div class="flex items-center gap-6 border-t border-slate-100 pt-3">
                     <div class="flex items-center gap-1.5 group">
                         <button class="p-1.5 -ml-2 rounded-full text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition btn-like" data-id="${post.id}">
@@ -331,7 +420,6 @@
                             좋아요 <span class="like-count font-bold">${post.like_count}</span>개
                         </button>
                     </div>
-
                     <button class="flex items-center gap-1.5 group btn-comment" data-id="${post.id}">
                         <div class="p-1.5 rounded-full text-slate-400 group-hover:text-brand group-hover:bg-indigo-50 transition">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
@@ -340,24 +428,22 @@
                     </button>
                 </div>
             `;
-
-            // Events
             el.querySelector('.post-content').onclick = () => openDrawer(post.id);
             el.querySelector('.btn-comment').onclick = () => openDrawer(post.id);
             el.querySelector('.btn-like').onclick = (e) => toggleLikePost(post.id, e.currentTarget);
-
-            // 팔로우 버튼
-            el.querySelector('.btn-follow').onclick = (e) => toggleFollow(post.user_id, e.target);
-
-            // 좋아요 목록 보기
+            const fb = el.querySelector('.btn-follow');
+            if (fb) fb.onclick = (e) => toggleFollow(post.user_id, e.target);
             el.querySelector('.btn-view-likes').onclick = () => openUserModal(`/posts/${post.id}/likes`, '이 포스트를 좋아하는 사람들');
+            const db = el.querySelector('.btn-delete-post');
+            if(db) db.onclick = () => deletePost(post.id, el);
 
             container.appendChild(el);
         });
     }
 
-    // ================= POST ACTIONS =================
+    // ================= ACTIONS =================
     async function createPost() {
+        if (!requireAuth()) return;
         const content = qs('#new-post-content').value.trim();
         if (!content) return showToast('내용을 입력해주세요.');
         try {
@@ -366,119 +452,125 @@
         } catch (e) { showToast(e.message); }
     }
 
+    async function deletePost(id, el) {
+        if (!confirm("정말 이 게시글을 삭제하시겠습니까?")) return;
+        try {
+            await api(`/posts/${id}`, { method: 'DELETE' });
+            el.remove();
+            showToast("삭제되었습니다.");
+        } catch(e) { showToast("삭제 실패 (권한이 없거나 오류 발생)"); }
+    }
+
     async function toggleLikePost(id, btnEl) {
+        if (!requireAuth()) return;
         const countSpan = btnEl.parentElement.querySelector('.like-count');
         let currentCount = parseInt(countSpan.textContent);
         const icon = btnEl.querySelector('svg');
-
-        // Optimistic UI update logic (simplified for toggle)
         try {
-            // Try Like
             try {
                 await api(`/posts/${id}/likes`, { method: 'POST' });
-                countSpan.textContent = currentCount + 1;
-                icon.setAttribute('fill', 'currentColor');
-                btnEl.classList.add('text-rose-500');
+                countSpan.textContent = currentCount + 1; icon.setAttribute('fill', 'currentColor'); btnEl.classList.add('text-rose-500');
             } catch (e) {
-                // If failed (Already liked), Try Unlike
                 await api(`/posts/${id}/likes`, { method: 'DELETE' });
-                countSpan.textContent = Math.max(0, currentCount - 1);
-                icon.setAttribute('fill', 'none');
-                btnEl.classList.remove('text-rose-500');
+                countSpan.textContent = Math.max(0, currentCount - 1); icon.setAttribute('fill', 'none'); btnEl.classList.remove('text-rose-500');
             }
         } catch (e) { console.error(e); }
     }
 
-    // ================= FOLLOW LOGIC =================
+    // ★ 팔로우 토글 핵심 로직 (팔로우 ↔ 언팔로우) ★
     async function toggleFollow(targetId, btn) {
-        const originalText = btn.textContent;
+        if (!requireAuth()) return;
         btn.disabled = true;
-        btn.textContent = '...';
-
+        const isFollowing = btn.dataset.following === 'true'; // 현재 상태 확인
         try {
-            // 1. Try Follow (POST)
-            await api(`/members/${targetId}/follower`, { method: 'POST' });
-            // Success
-            btn.textContent = '팔로잉';
-            btn.className = 'text-[11px] font-bold bg-indigo-50 text-brand px-2 py-1 rounded-full hover:bg-indigo-100 transition btn-follow';
-            showToast('팔로우 했습니다.');
-        } catch (err) {
-            // 2. If already exists (409 Conflict etc), ask to Unfollow
-            if (confirm('이미 팔로우 중입니다. 언팔로우 하시겠습니까?')) {
-                try {
-                    await api(`/members/${targetId}/follower`, { method: 'DELETE' });
-                    btn.textContent = '팔로우';
-                    btn.className = 'text-[11px] font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded-full hover:bg-slate-200 hover:text-slate-700 transition btn-follow';
-                    showToast('언팔로우 했습니다.');
-                } catch(e) { showToast('요청 실패'); btn.textContent = originalText; }
+            if (!isFollowing) {
+                // 팔로우 실행 (POST)
+                await api(`/members/${targetId}/follower`, { method: 'POST' });
+                setFollowButtonState(btn, true);
+                showToast('팔로우 했습니다.');
             } else {
-                btn.textContent = originalText;
+                // 언팔로우 실행 (DELETE)
+                await api(`/members/${targetId}/follower`, { method: 'DELETE' });
+                setFollowButtonState(btn, false);
+                showToast('언팔로우 했습니다.');
             }
-        } finally {
-            btn.disabled = false;
-        }
+        } catch (e) {
+            // 409: 이미 팔로우 중임 -> UI를 팔로잉으로 변경
+            if (e.status === 409) { setFollowButtonState(btn, true); showToast('이미 팔로우 중입니다.'); }
+            // 404: 팔로우 관계가 없음 -> UI를 팔로우로 변경
+            else if (e.status === 404 && isFollowing) { setFollowButtonState(btn, false); }
+            else if (e.status === 401) { openAuth(); showToast('로그인이 필요합니다.'); }
+            else { showToast('요청 실패'); }
+        } finally { btn.disabled = false; }
     }
 
-    // ================= DRAWER LOGIC =================
+    // ================= DRAWER =================
     async function openDrawer(postId) {
-        qs('#drawer').classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
-
+        qs('#drawer').classList.remove('hidden'); document.body.style.overflow = 'hidden';
         let post = feedList.find(p => p.id === postId);
-        if(!post) {
-            try { post = await api(`/posts/${postId}`); } catch(e) { return closeDrawer(); }
-        }
-        currentPost = post;
-        renderDrawerPost(post);
-        loadComments(true);
+        if (!post) { try { post = await api(`/posts/${postId}`); } catch (e) { return closeDrawer(); } }
+        currentPost = post; renderDrawerPost(post); loadComments(true);
     }
-
-    function closeDrawer() {
-        qs('#drawer').classList.add('hidden');
-        document.body.style.overflow = '';
-        currentPost = null;
-    }
+    function closeDrawer() { qs('#drawer').classList.add('hidden'); document.body.style.overflow = ''; currentPost = null; }
 
     function renderDrawerPost(post) {
+        const isMe = currentUserId && post.user_id === currentUserId;
+        const followBtnHtml = !isMe
+            ? `<button class="text-xs font-bold text-brand bg-indigo-50 px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition btn-follow-drawer" data-uid="${post.user_id}">팔로우</button>`
+            : '';
+        const deleteBtnHtml = isMe
+            ? `<button class="text-slate-400 hover:text-rose-500 transition ml-2 btn-delete-drawer">✕</button>`
+            : '';
+
         qs('#drawer-post').innerHTML = `
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                    <div class="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600">
-                         ${post.user_name.charAt(0).toUpperCase()}
-                    </div>
+                    <div class="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600">${post.user_name.charAt(0).toUpperCase()}</div>
                     <div>
                         <div class="font-bold text-slate-900">${post.user_name}</div>
                         <div class="text-xs text-slate-500">${timeAgo(post.created_at)}</div>
                     </div>
                 </div>
-                <button class="text-xs font-bold text-brand bg-indigo-50 px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition" onclick="toggleFollow(${post.user_id}, this)">팔로우</button>
+                <div class="flex items-center">${followBtnHtml}${deleteBtnHtml}</div>
             </div>
-            <div class="text-[16px] leading-relaxed whitespace-pre-wrap text-slate-800">${escapeHtml(post.content)}</div>
-            <div class="text-sm font-medium">
+            <div class="text-[16px] leading-relaxed whitespace-pre-wrap text-slate-800 mt-3">${escapeHtml(post.content)}</div>
+            <div class="text-sm font-medium mt-3">
                 <button class="text-slate-500 hover:text-slate-800 hover:underline transition" id="drawer-likes-btn">좋아요 <span class="text-slate-900 font-bold">${post.like_count}</span>개</button>
             </div>
         `;
         qs('#drawer-comment-count').textContent = post.comments || 0;
         qs('#drawer-likes-btn').onclick = () => openUserModal(`/posts/${post.id}/likes`, '이 포스트를 좋아하는 사람들');
+
+        const fb = qs('.btn-follow-drawer');
+        if (fb) { setFollowButtonState(fb, false); fb.onclick = (e) => toggleFollow(post.user_id, e.target); }
+        const db = qs('.btn-delete-drawer');
+        if (db) {
+            db.onclick = async () => {
+                if(!confirm('정말 삭제하시겠습니까?')) return;
+                try {
+                    await api(`/posts/${post.id}`, { method: 'DELETE' });
+                    closeDrawer(); showToast("삭제되었습니다."); loadFeed(true);
+                } catch(e) { showToast("삭제 실패"); }
+            };
+        }
     }
 
-    // ================= COMMENT LOGIC =================
+    // ================= COMMENTS =================
     async function loadComments(reset = false) {
         if (!currentPost) return;
         if (reset) { commentPage = 0; commentIsLast = false; commentList = []; qs('#comments-list').innerHTML = ''; qs('#btn-load-more-comments').classList.add('hidden'); }
         if (commentIsLast) return;
-
         try {
             const res = await api(`/posts/${currentPost.id}/comments?page=${commentPage}&size=10`);
             const newComments = res.content || [];
             commentList = [...commentList, ...newComments];
-            commentIsLast = res.last;
-            commentPage++;
-
+            commentIsLast = res.last; commentPage++;
             newComments.forEach(c => {
                 const el = document.createElement('div');
                 el.className = 'flex gap-3 text-sm animate-fade-in';
-                // CommentResponseDto has user_id
+                const isMyComment = currentUserId && c.user_id === currentUserId;
+                const delBtnHtml = isMyComment ? `<button class="ml-auto text-rose-400 hover:text-rose-600 btn-del-comment">삭제</button>` : '';
+
                 el.innerHTML = `
                     <div class="h-8 w-8 rounded-full bg-slate-100 shrink-0 flex items-center justify-center font-bold text-xs text-slate-500">${c.user_name.charAt(0)}</div>
                     <div class="flex-1">
@@ -492,112 +584,128 @@
                         <div class="mt-1.5 flex gap-3 text-xs text-slate-500 font-medium pl-1">
                              <button class="hover:text-brand transition btn-like-comment">좋아요 ${c.like_count}</button>
                              <button class="hover:text-slate-800 underline decoration-slate-300 btn-view-likes">보기</button>
-                             <button class="ml-auto text-rose-400 hover:text-rose-600 btn-del-comment">삭제</button>
+                             ${delBtnHtml}
                         </div>
                     </div>
                 `;
                 el.querySelector('.btn-like-comment').onclick = () => toggleLikeComment(c.id);
                 el.querySelector('.btn-view-likes').onclick = () => openUserModal(`/comments/${c.id}/likes`, '댓글을 좋아하는 사람들');
-                el.querySelector('.btn-del-comment').onclick = () => deleteComment(c.id, el);
+                if(isMyComment) el.querySelector('.btn-del-comment').onclick = () => deleteComment(c.id, el);
                 qs('#comments-list').appendChild(el);
             });
             if (!commentIsLast) qs('#btn-load-more-comments').classList.remove('hidden');
         } catch (e) { console.error(e); }
     }
-
     async function createComment() {
+        if (!requireAuth()) return;
         const content = qs('#new-comment-content').value.trim();
         if (!content || !currentPost) return;
-        try {
-            await api('/comments', { method: 'POST', body: { post_id: currentPost.id, content } });
-            qs('#new-comment-content').value = ''; loadComments(true);
-        } catch (e) { showToast(e.message); }
+        try { await api('/comments', { method: 'POST', body: { post_id: currentPost.id, content } }); qs('#new-comment-content').value = ''; loadComments(true); } catch (e) { showToast(e.message); }
     }
-
     async function toggleLikeComment(id) {
-        try {
-            try { await api(`/comments/${id}/likes`, { method: 'POST' }); showToast('댓글 좋아요'); }
-            catch { await api(`/comments/${id}/likes`, { method: 'DELETE' }); showToast('댓글 좋아요 취소'); }
-            loadComments(true);
-        } catch(e) {}
+        if (!requireAuth()) return;
+        try { try { await api(`/comments/${id}/likes`, { method: 'POST' }); showToast('댓글 좋아요'); } catch { await api(`/comments/${id}/likes`, { method: 'DELETE' }); showToast('댓글 좋아요 취소'); } loadComments(true); } catch (e) {}
     }
-
     async function deleteComment(id, el) {
-        if(!confirm('정말 삭제하시겠습니까?')) return;
-        try { await api(`/comments/${id}`, { method: 'DELETE' }); el.remove(); }
-        catch(e) { showToast('삭제 실패 (본인 댓글이 아니거나 오류)'); }
+        if (!requireAuth()) return;
+        if (!confirm('정말 삭제하시겠습니까?')) return;
+        try { await api(`/comments/${id}`, { method: 'DELETE' }); el.remove(); } catch (e) { showToast('삭제 실패'); }
     }
 
-    // ================= USER MODAL LOGIC =================
+    // ================= USER MODAL =================
     function openUserModal(endpoint, title) {
-        userModalEndpoint = endpoint;
-        userModalPage = 0; userModalIsLast = false;
-        qs('#user-modal-title').textContent = title;
-        qs('#user-modal-list').innerHTML = '';
-        qs('#user-modal').classList.remove('hidden');
-        qs('#btn-user-modal-more').classList.add('hidden');
+        if (!requireAuth()) return;
+        userModalEndpoint = endpoint; userModalPage = 0; userModalIsLast = false;
+        qs('#user-modal-title').textContent = title; qs('#user-modal-list').innerHTML = '';
+        qs('#user-modal').classList.remove('hidden'); qs('#btn-user-modal-more').classList.add('hidden');
         loadUserModalItems();
     }
-
     function closeUserModal() { qs('#user-modal').classList.add('hidden'); }
-
     async function loadUserModalItems() {
         if (userModalIsLast) return;
         try {
-            // Returns Slice<MemberResponseDto> { id, nickname }
             const res = await api(`${userModalEndpoint}?page=${userModalPage}&size=10`);
             const users = res.content || [];
-            userModalIsLast = res.last;
-            userModalPage++;
-
+            userModalIsLast = res.last; userModalPage++;
             const listEl = qs('#user-modal-list');
-            if (users.length === 0 && userModalPage === 1) {
-                listEl.innerHTML = '<div class="text-center text-slate-400 py-6 text-sm">아직 내역이 없습니다.</div>';
-                return;
-            }
+            if (users.length === 0 && userModalPage === 1) { listEl.innerHTML = '<div class="text-center text-slate-400 py-6 text-sm">내역이 없습니다.</div>'; return; }
+
+            // "내가 팔로우하는 목록"인지 확인 (endpoint에 /following이 포함되고 내 ID가 포함됨)
+            const isMyFollowingList = userModalEndpoint.includes(`/following`) && userModalEndpoint.includes(String(currentUserId));
 
             users.forEach(u => {
                 const row = document.createElement('div');
                 row.className = 'flex items-center justify-between p-3 hover:bg-slate-50 rounded-xl transition';
                 row.innerHTML = `
                     <div class="flex items-center gap-3">
-                        <div class="h-9 w-9 rounded-full bg-slate-200 flex items-center justify-center font-bold text-sm text-slate-600">
-                            ${u.nickname.charAt(0)}
-                        </div>
+                        <div class="h-9 w-9 rounded-full bg-slate-200 flex items-center justify-center font-bold text-sm text-slate-600">${u.nickname.charAt(0)}</div>
                         <span class="font-bold text-slate-800 text-sm">${u.nickname}</span>
                     </div>
-                    <button class="text-xs font-bold bg-indigo-50 text-brand px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition btn-follow"
-                            data-uid="${u.id}">팔로우</button>
+                    <button class="text-xs font-bold bg-slate-100 text-slate-500 px-3 py-1.5 rounded-lg hover:bg-slate-200 hover:text-slate-700 transition btn-follow" data-uid="${u.id}" data-following="false">팔로우</button>
                 `;
-                row.querySelector('.btn-follow').onclick = (e) => toggleFollow(u.id, e.target);
+                const fb = row.querySelector('.btn-follow');
+                if (currentUserId && u.id === currentUserId) fb.classList.add('hidden');
+                else {
+                    // ★ 핵심: 내 팔로잉 목록이면 버튼 상태를 '팔로잉(Following)'으로 초기화해서 바로 언팔로우 가능하게 함
+                    setFollowButtonState(fb, isMyFollowingList);
+                    fb.onclick = (e) => toggleFollow(u.id, e.target);
+                }
                 listEl.appendChild(row);
             });
-
-            if (!userModalIsLast) qs('#btn-user-modal-more').classList.remove('hidden');
-            else qs('#btn-user-modal-more').classList.add('hidden');
+            if (!userModalIsLast) qs('#btn-user-modal-more').classList.remove('hidden'); else qs('#btn-user-modal-more').classList.add('hidden');
         } catch (e) { showToast('목록 로드 실패'); }
     }
 
-    // ================= EVENTS =================
-    qs('#btn-login').onclick = login;
-    qs('#btn-signup').onclick = signup;
-    qs('#btn-logout').onclick = logout;
-    qs('#btn-create-post').onclick = createPost;
-    qs('#btn-create-comment').onclick = createComment;
+    // ================= MYPAGE =================
+    function openMypage() { if (!requireAuth() || !currentUserId) return; qs('#mypage-modal').classList.remove('hidden'); }
+    function closeMypage() { qs('#mypage-modal').classList.add('hidden'); }
+    function showMyPosts() { if (!currentUserId) return; feedFilterMemberId = currentUserId; closeMypage(); showToast('내 게시글만 표시합니다.'); loadFeed(true); }
+    function resetFeedFilter() { feedFilterMemberId = null; showToast('전체 피드를 표시합니다.'); loadFeed(true); }
+    function openMyCommentsModal() { if (!requireAuth() || !currentUserId) return; qs('#mycomments-modal').classList.remove('hidden'); qs('#mycomments-list').innerHTML = ''; myCommentsPage = 0; myCommentsIsLast = false; loadMyComments(); }
+    function closeMyCommentsModal() { qs('#mycomments-modal').classList.add('hidden'); }
+    async function loadMyComments() {
+        if (myCommentsIsLast || !currentUserId) return;
+        try {
+            const res = await api(`/comments?memberId=${currentUserId}&page=${myCommentsPage}&size=10`);
+            const content = res.content || [];
+            myCommentsIsLast = res.last; myCommentsPage++;
+            const listEl = qs('#mycomments-list');
+            if (content.length === 0 && myCommentsPage === 1) { listEl.innerHTML = '<div class="text-center text-slate-400 py-6 text-sm">작성한 댓글이 없습니다.</div>'; return; }
+            content.forEach(c => {
+                const item = document.createElement('div');
+                item.className = 'border border-slate-100 rounded-xl p-3 bg-slate-50';
+                item.innerHTML = `
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-xs text-slate-400">게시글 #${c.post_id}</span>
+                        <span class="text-xs text-slate-400">${timeAgo(c.created_at)}</span>
+                    </div>
+                    <p class="text-sm text-slate-800 whitespace-pre-wrap mb-2">${escapeHtml(c.content)}</p>
+                    <button class="text-xs font-bold text-brand hover:underline">해당 글 보기</button>
+                `;
+                item.querySelector('button').onclick = () => { closeMyCommentsModal(); openDrawer(c.post_id); };
+                listEl.appendChild(item);
+            });
+            if (!myCommentsIsLast) qs('#btn-mycomments-more').classList.remove('hidden'); else qs('#btn-mycomments-more').classList.add('hidden');
+        } catch (e) { showToast('댓글 목록 로드 실패'); }
+    }
+
+    // ================= EVENTS & INIT =================
+    qs('#btn-login').onclick = login; qs('#btn-signup').onclick = signup; qs('#btn-logout').onclick = logout;
+    qs('#btn-create-post').onclick = createPost; qs('#btn-create-comment').onclick = createComment;
     qs('#drawer-close').onclick = closeDrawer; qs('#drawer-backdrop').onclick = closeDrawer;
     qs('#btn-load-more-comments').onclick = () => loadComments(false);
-    qs('#user-modal-close').onclick = closeUserModal; qs('#user-modal-backdrop').onclick = closeUserModal;
-    qs('#btn-user-modal-more').onclick = loadUserModalItems;
+    qs('#user-modal-close').onclick = closeUserModal; qs('#user-modal-backdrop').onclick = closeUserModal; qs('#btn-user-modal-more').onclick = loadUserModalItems;
+    qs('#btn-login-open').onclick = openAuth; qs('#btn-mypage').onclick = openMypage; qs('#btn-feed-all').onclick = resetFeedFilter;
+    qs('#mypage-close').onclick = closeMypage; qs('#mypage-backdrop').onclick = closeMypage;
+    qs('#btn-my-posts').onclick = showMyPosts; qs('#btn-my-comments').onclick = () => { closeMypage(); openMyCommentsModal(); };
+    qs('#btn-my-followers').onclick = () => { if (!currentUserId) return; closeMypage(); openUserModal(`/members/${currentUserId}/follower`, '나를 팔로우하는 사람들'); };
+    qs('#btn-my-followings').onclick = () => { if (!currentUserId) return; closeMypage(); openUserModal(`/members/${currentUserId}/following`, '내가 팔로우하는 사람들'); };
+    qs('#mycomments-close').onclick = closeMyCommentsModal; qs('#mycomments-backdrop').onclick = closeMyCommentsModal; qs('#btn-mycomments-more').onclick = loadMyComments;
+    qs('#new-post-content').onfocus = () => { if (!accessToken) { qs('#new-post-content').blur(); requireAuth(); } };
+    window.addEventListener('scroll', () => { if (!qs('#app-screen').classList.contains('hidden')) { if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 100) loadFeed(); } });
 
-    window.addEventListener('scroll', () => {
-        if (!qs('#app-screen').classList.contains('hidden')) {
-            if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 100) loadFeed();
-        }
-    });
-
-    // Init
-    checkAuth();
-
+    async function initApp() { if (accessToken) await initCurrentUser(); checkAuth(); }
+    initApp();
 </script>
 </body>
 </html>

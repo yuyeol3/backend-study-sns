@@ -12,6 +12,7 @@ import java.util.Optional;
 
 public interface FollowsRepository extends JpaRepository<Follows, Long> {
     Optional<Follows> findByFollowerAndFollowing(Member follower, Member following);
+    Optional<Follows> findByFollowerIdAndFollowingId(Long followerId, Long followingId);
 
 
     @Query("""
@@ -21,7 +22,7 @@ public interface FollowsRepository extends JpaRepository<Follows, Long> {
         FROM Follows f
         WHERE f.following.id = :id
     """)
-    Slice<MemberResponseDto> findFollowingsOf(Long id, Pageable pageable);
+    Slice<MemberResponseDto> findFollowersOf(Long id, Pageable pageable);
 
     @Query("""
         SELECT new com.example.devSns.dto.member.MemberResponseDto(
@@ -30,5 +31,5 @@ public interface FollowsRepository extends JpaRepository<Follows, Long> {
         FROM Follows f
         WHERE f.follower.id = :id
     """)
-    Slice<MemberResponseDto> findFollowersOf(Long id, Pageable pageable);
+    Slice<MemberResponseDto> findFollowingsOf(Long id, Pageable pageable);
 }
